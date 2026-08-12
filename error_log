@@ -1,0 +1,60 @@
+[19-Dec-2025 18:12:16 Asia/Dhaka] PHP Fatal error:  Cannot declare class App\Http\Controllers\WishlistController, because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/WishlistController.php on line 9
+[19-Dec-2025 18:12:41 Asia/Dhaka] PHP Fatal error:  Cannot declare class App\Http\Controllers\WishlistController, because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/WishlistController.php on line 9
+[19-Dec-2025 18:12:55 Asia/Dhaka] PHP Fatal error:  Cannot declare class App\Http\Controllers\WishlistController, because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/WishlistController.php on line 9
+[19-Dec-2025 18:12:59 Asia/Dhaka] PHP Fatal error:  Cannot declare class App\Http\Controllers\WishlistController, because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/WishlistController.php on line 9
+[25-Dec-2025 11:31:14 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Hash as Hash because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/AuthController.php on line 17
+[25-Dec-2025 11:31:53 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Hash as Hash because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/AuthController.php on line 17
+[25-Dec-2025 11:32:04 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Hash as Hash because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/AuthController.php on line 17
+[25-Dec-2025 11:32:11 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Hash as Hash because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/AuthController.php on line 17
+[25-Dec-2025 11:32:26 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Hash as Hash because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/AuthController.php on line 17
+[25-Dec-2025 11:32:48 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Hash as Hash because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/AuthController.php on line 17
+[25-Dec-2025 11:32:48 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Hash as Hash because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/AuthController.php on line 17
+[25-Dec-2025 11:32:48 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Hash as Hash because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/AuthController.php on line 17
+[25-Dec-2025 11:32:48 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Hash as Hash because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/AuthController.php on line 17
+[25-Dec-2025 11:32:48 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Hash as Hash because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/AuthController.php on line 17
+[25-Dec-2025 11:32:48 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Hash as Hash because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/AuthController.php on line 17
+[25-Dec-2025 11:32:53 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Hash as Hash because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/AuthController.php on line 17
+[25-Dec-2025 11:32:53 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Hash as Hash because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/AuthController.php on line 17
+[25-Dec-2025 11:32:53 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Hash as Hash because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/AuthController.php on line 17
+[25-Dec-2025 11:32:53 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Hash as Hash because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/AuthController.php on line 17
+[25-Dec-2025 11:32:53 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Hash as Hash because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/AuthController.php on line 17
+[25-Dec-2025 11:32:53 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Hash as Hash because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/AuthController.php on line 17
+[25-Dec-2025 11:32:53 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Hash as Hash because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/AuthController.php on line 17
+[25-Dec-2025 11:32:53 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Hash as Hash because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/AuthController.php on line 17
+[25-Dec-2025 11:33:10 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Hash as Hash because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/AuthController.php on line 17
+[25-Dec-2025 11:33:15 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Hash as Hash because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/AuthController.php on line 17
+[25-Dec-2025 11:34:56 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Hash as Hash because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/AuthController.php on line 17
+[25-Dec-2025 22:24:02 Asia/Dhaka] PHP Fatal error:  Cannot use App\Models\Coupon as Coupon because the name is already in use in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/OrderController.php on line 17
+[01-Jan-2026 17:31:08 Asia/Dhaka] PHP Fatal error:  Trait "App\Http\Controllers\Api\Illuminate\Support\Facades\DB" not found in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/CartController.php on line 17
+[15-Jan-2026 10:16:56 Asia/Dhaka] PHP Fatal error:  Cannot redeclare App\Http\Controllers\Api\CartController::addToCart() in /home/rashifas/next.mamatazshop.com/app/Http/Controllers/Api/CartController.php on line 121
+[09-Feb-2026 06:28:22 UTC] PHP Warning:  require(/home/rashifas/next.mamatazshop.com/vendor/autoload.php): Failed to open stream: No such file or directory in /home/rashifas/next.mamatazshop.com/index.php on line 34
+[09-Feb-2026 06:28:22 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/rashifas/next.mamatazshop.com/vendor/autoload.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/rashifas/next.mamatazshop.com/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/rashifas/next.mamatazshop.com/index.php on line 34
+[18-Feb-2026 11:05:59 Asia/Dhaka] PHP Fatal error:  Cannot redeclare App\Models\Order::shipping() in /home/rashifas/next.babuei.com/app/Models/Order.php on line 40
+[18-Feb-2026 11:09:12 Asia/Dhaka] PHP Fatal error:  Cannot redeclare App\Models\Order::shipping() in /home/rashifas/next.babuei.com/app/Models/Order.php on line 40
+[18-Feb-2026 11:10:04 Asia/Dhaka] PHP Fatal error:  Cannot redeclare App\Models\Order::shipping() in /home/rashifas/next.babuei.com/app/Models/Order.php on line 40
+[18-Feb-2026 11:10:06 Asia/Dhaka] PHP Fatal error:  Cannot redeclare App\Models\Order::shipping() in /home/rashifas/next.babuei.com/app/Models/Order.php on line 40
+[18-Feb-2026 11:11:24 Asia/Dhaka] PHP Fatal error:  Cannot redeclare App\Models\Order::shipping() in /home/rashifas/next.babuei.com/app/Models/Order.php on line 40
+[18-Feb-2026 11:11:59 Asia/Dhaka] PHP Fatal error:  Cannot redeclare App\Models\Order::shipping() in /home/rashifas/next.babuei.com/app/Models/Order.php on line 40
+[18-Feb-2026 11:12:02 Asia/Dhaka] PHP Fatal error:  Cannot redeclare App\Models\Order::shipping() in /home/rashifas/next.babuei.com/app/Models/Order.php on line 40
+[29-Mar-2026 09:10:53 UTC] PHP Warning:  require(/home/rashifas/next.babuei.com/vendor/composer/../symfony/deprecation-contracts/function.php): Failed to open stream: No such file or directory in /home/rashifas/next.babuei.com/vendor/composer/autoload_real.php on line 41
+[29-Mar-2026 09:10:53 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/rashifas/next.babuei.com/vendor/composer/../symfony/deprecation-contracts/function.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/rashifas/next.babuei.com/vendor/composer/autoload_real.php:41
+Stack trace:
+#0 /home/rashifas/next.babuei.com/vendor/composer/autoload_real.php(45): {closure}()
+#1 /home/rashifas/next.babuei.com/vendor/autoload.php(22): ComposerAutoloaderInit753e73c8eeef9796420facf4bfb57683::getLoader()
+#2 /home/rashifas/next.babuei.com/index.php(34): require('/home/rashifas/...')
+#3 {main}
+  thrown in /home/rashifas/next.babuei.com/vendor/composer/autoload_real.php on line 41
+[29-Mar-2026 09:10:53 UTC] PHP Warning:  require(/home/rashifas/next.babuei.com/vendor/composer/../symfony/deprecation-contracts/function.php): Failed to open stream: No such file or directory in /home/rashifas/next.babuei.com/vendor/composer/autoload_real.php on line 41
+[29-Mar-2026 09:10:53 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/rashifas/next.babuei.com/vendor/composer/../symfony/deprecation-contracts/function.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/rashifas/next.babuei.com/vendor/composer/autoload_real.php:41
+Stack trace:
+#0 /home/rashifas/next.babuei.com/vendor/composer/autoload_real.php(45): {closure}()
+#1 /home/rashifas/next.babuei.com/vendor/autoload.php(22): ComposerAutoloaderInit753e73c8eeef9796420facf4bfb57683::getLoader()
+#2 /home/rashifas/next.babuei.com/index.php(34): require('/home/rashifas/...')
+#3 {main}
+  thrown in /home/rashifas/next.babuei.com/vendor/composer/autoload_real.php on line 41
+[01-Apr-2026 14:43:02 Asia/Dhaka] PHP Fatal error:  Cannot use App\Http\Controllers\Admin\OrderController as OrderController because the name is already in use in /home/rashifas/next.babuei.com/routes/api.php on line 18
+[20-Apr-2026 10:52:33 Asia/Dhaka] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Http as Http because the name is already in use in /home/rashifas/next.babuei.com/app/Http/Controllers/Admin/OrderController.php on line 28
+[09-Jul-2026 15:24:56 Asia/Dhaka] PHP Fatal error:  Cannot redeclare App\Http\Controllers\Api\FrontendController::district() in /home/getgoodscom/panel.getgoods.com.bd/app/Http/Controllers/Api/FrontendController.php on line 365
