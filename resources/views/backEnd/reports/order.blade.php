@@ -62,7 +62,7 @@
                             </div>
                             <!--col-sm-3-->
                             <div class="col-sm-3">
-                                <div class="form-group mb-3">
+                                <div class="mb-3 form-group">
                                     <label for="filter" class="form-label">Filter Order/Sale</label>
                                     <select class="form-control select2 @error('filter') is-invalid @enderror"
                                         name="filter" value="{{ request()->get('filter') }}">
@@ -83,7 +83,7 @@
                                 </div>
                             </div>
                             <div class="col-sm-2">
-                                <div class="form-group mb-3">
+                                <div class="mb-3 form-group">
                                     <label for="filter_qty" class="form-label">Filter </label>
                                     <select class="form-control select2 @error('filter_qty') is-invalid @enderror"
                                         name="filter_qty" value="{{ request()->get('filter_qty') }}">
@@ -120,7 +120,7 @@
                             </div>
                             <!--col-sm-3-->
                             <div class="col-sm-12">
-                                <div class="form-group mb-3">
+                                <div class="mb-3 form-group">
                                     <button class="btn btn-primary">Submit</button>
                                     <a href="{{ route('admin.order_report') }}" class="btn btn-danger">Reset</a>
                                 </div>
@@ -128,7 +128,7 @@
                             <!-- col end -->
                         </div>
                     </form>
-                    <div class="row mb-3">
+                    <div class="mb-3 row">
                         <div class="col-sm-6 no-print">
                             {{ $orders->links('pagination::bootstrap-4') }}
                         </div>
@@ -163,7 +163,7 @@
                                         <!--<th>Order Type</th>-->
                                         <th>Order Status</th>
                                         <th>Product Name</th>
-                                        
+
                                         @if(request()->filter == 'sale')
                                         <th>Product ID</th>
                                         <th>SKU</th>
@@ -200,7 +200,7 @@
                                         $single_sale = 0;
                                     @endphp
                                     @foreach ($orders as $key => $value)
-                                    
+
                                         <tr>
                                             <td>{{ $value->order ? $value->order->invoice_id : $key + 1 }}</td>
                                             <!--<td>Online</td>-->
@@ -211,16 +211,16 @@
                                                 $product_size = App\Models\Productsize::where('size', $value->product_size)->where('product_id', $value->product_id)->where('color_id', $product_color->color_id)->first();
                                             @endphp
                                             @if(request()->filter == 'sale')
-                                                <td>{{ $product->name }}</td>
-                                                <td>{{ $product->product_code }}</td>
+                                                <td>{{ $product?->name }}</td>
+                                                <td>{{ $product?->product_code }}</td>
                                                 <td>{{ $product_size?->sku }}</td>
                                                 <td>{{ $value->product_color }}</td>
                                                 <td>{{ $value->product_size }}</td>
                                                 <td>{{ $value->total_sale }}</td>
                                                 <td>{{ $value->total_amount }}</td>
                                             @else
-                                                <td>{{ $value->product_name }}</td>
-                                                <td>{{ $product->product_code ?? "" }}</td>
+                                                <td>{{ $value?->product_name }}</td>
+                                                <td>{{ $product?->product_code ?? "" }}</td>
                                                 <td>{{ $product_size?->sku }}</td>
                                                 <td>{{ $value->qty }}</td>
                                                 <td>{{ $value->sale_price }}</td>

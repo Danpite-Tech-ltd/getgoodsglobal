@@ -46,7 +46,7 @@
                                     <tr>
                                         <td>{{ $loop->iteration }}</td>
                                         <td>{{ $value->thanaName }}</td>
-                                        <td>{{ $value->district->districtName }}</td>
+                                        <td>{{ $value?->district?->districtName }}</td>
                                         <td>
                                             <div class="button-list">
 
