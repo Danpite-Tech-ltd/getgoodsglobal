@@ -90,15 +90,15 @@ class CartController extends Controller
                     }
                 } else {
                     $cartDetail->price    = $sizeData->SalePrice;
-                }  
-                
+                }
+
                 $cartDetail->save();
 
                 $savedDetails[] = $cartDetail;
             }
-            
+
              DB::commit();
-             
+
             return response()->json([
                 'status'  => 'success',
                 'message' => 'Added To Cart',
@@ -119,16 +119,16 @@ class CartController extends Controller
             ], 500);
         }
     }
-    
-    
+
+
     public function productAddToCart(Request $request)
     {
         try {
             DB::beginTransaction();
             $today = Carbon::today();
-    
+
             $customer = $request->user();
-    
+
             $validated = $request->validate([
                 'product_id' => 'required|integer',
                 // 'shippingcharge_id' => 'required|integer',
@@ -138,9 +138,9 @@ class CartController extends Controller
                 'cart_details.*.quantity' => 'required|integer|min:1',
                 'total_quantity' => 'sometimes|integer|min:1' // optional for bulk pricing
             ]);
-            
-            
-    
+
+
+
             // Fetch product
             $product = Product::find($validated['product_id']);
             if (!$product) {
@@ -149,14 +149,14 @@ class CartController extends Controller
                     'message' => 'Invalid product'
                 ], 404);
             }
-            
+
             // Fetch flash sale
             $setting = GeneralSetting::first();
-    
+
             // product image
             $productImage = Productimage::where('product_id', $product->id)->value('image');
-    
-            
+
+
             $cart = Cart::firstOrCreate(
                 [
                     'user_id' => $customer->id,
@@ -169,11 +169,11 @@ class CartController extends Controller
                     'slug' => $product->slug,
                 ]
             );
-    
+
             $savedDetails = [];
-    
+
             foreach ($validated['cart_details'] as $detail) {
-    
+
                 // Validate size
                 $sizeData = Productsize::where('product_id', $product->id)
                     ->where('size', $detail['size'])
@@ -184,7 +184,7 @@ class CartController extends Controller
                         'message' => 'Invalid size: ' . $detail['size']
                     ], 400);
                 }
-    
+
                 // Validate color
                 $productColor = Productcolor::where('product_id', $product->id)
                     ->where('color_id', $detail['color_id'])
@@ -195,12 +195,12 @@ class CartController extends Controller
                         'message' => 'Invalid color'
                     ], 400);
                 }
-                //  same size + color already exists 
+                //  same size + color already exists
                 $cartDetailQuery = CartDetails::where('user_id', $customer->id)
                     ->where('cart_id', $cart->id)
                     ->where('size', $detail['size'])
                     ->where('color_id', $productColor->color_id);
-                
+
                 if ($cartDetailQuery->exists()) {
                     $cartDetail = $cartDetailQuery->first();
                     $cartDetail->quantity = $detail['quantity'];
@@ -208,26 +208,26 @@ class CartController extends Controller
                 } else {
                     $cartDetail = new CartDetails();
                     $cartDetail->cart_id = $cart->id;
-                    $cartDetail->user_id = $customer->id; 
+                    $cartDetail->user_id = $customer->id;
                     $cartDetail->product_id = $product->id;
                     $cartDetail->size = $detail['size'];
                     $cartDetail->color_id = $productColor->color_id;
                     $cartDetail->color = $productColor->color;
                     $cartDetail->color_image = $productColor->Image;
                     $cartDetail->quantity = $detail['quantity'];
-                
+
                     // Price set
                     if ($product->order_by == 1 && isset($validated['total_quantity'])) {
                         $total_quantity = $validated['total_quantity'];
-                        
+
                         $bulkqty = BulkQuantity::where('product_id', $product->id)
                             ->where('min_qty', '<=', $total_quantity)
                             ->where('max_qty', '>=', $total_quantity)
                             ->first();
-                        
+
                         $price = $bulkqty ? $bulkqty->price : $sizeData->SalePrice;
-                        
-                        
+
+
                         if (
                             $product->topsale == 1 &&
                             Carbon::today()->between(
@@ -237,10 +237,10 @@ class CartController extends Controller
                         ) {
                             $price -= (($price * $setting->flash_sale_percentage) / 100);
                         }
-                        
+
                         $cartDetail->price = round($price);
                         $cartDetail->regular_price = $bulkqty ? $bulkqty->price : $sizeData->SalePrice;
-                        
+
                     } else {
                         // $cartDetail->price = $sizeData->SalePrice;
                         if (
@@ -250,41 +250,41 @@ class CartController extends Controller
                                 Carbon::parse($setting->flash_sale_end_date)
                             )
                         ) {
-                        
+
                             $salePrice = $sizeData->RegularPrice;
                             $discountPercentage = $setting->flash_sale_percentage;
-                        
+
                             $discountAmount = (($salePrice * $discountPercentage) / 100);
                             $finalPrice = $salePrice - $discountAmount;
-                        
+
                             $cartDetail->price = round($finalPrice);
                             $cartDetail->regular_price = $sizeData->RegularPrice;
-                        
+
                         } else {
                             $cartDetail->price = $sizeData->SalePrice;
                             $cartDetail->regular_price = $sizeData->RegularPrice;
                         }
                     }
-                
+
                     $cartDetail->save();
                 }
-                
+
                 $savedDetails[] = $cartDetail;
 
 
 
             }
 
-    
+
             DB::commit();
-    
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Added to cart successfully',
                 'cart' => $cart,
                 'cart_details' => $savedDetails
             ], 201);
-    
+
         } catch (ValidationException $e) {
             DB::rollBack();
             return response()->json([
@@ -299,7 +299,7 @@ class CartController extends Controller
             ], 500);
         }
     }
-    
+
      public function productGetqty(Request $request)
     {
         try {
@@ -319,11 +319,11 @@ class CartController extends Controller
                 ->where('color_id',$request->color_id)
                 ->where('size', $request->size)
                 ->get();
-            
+
             // $sizes = Productsize::where('product_id',$request->product_id)
             //     ->where('size',$request->size)
             //     ->get();
-                
+
             // $colors = Productcolor::where('product_id',$request->product_id)
             //     ->where('color_id',$request->color_id)
             //     ->get();
@@ -353,15 +353,13 @@ class CartController extends Controller
         }
     }
 
-
     public function cartProducts()
-    { 
+    {
         try {
-
             $user = Auth::guard('customer')->user();
             $today = Carbon::today();
             $setting = GeneralSetting::first();
-            
+
             if (!$user) {
                 return response()->json([
                     'status'  => 'error',
@@ -373,21 +371,7 @@ class CartController extends Controller
             $cartItems = Cart::where('user_id', $user->id)
                 ->with('cartdetails')
                 ->get();
-            
-            $discount = [];
-            $discount['product_price'] = 0;
-            $discount['final_price'] = 0;
-            // calculate prices from cart items
-            foreach ($cartItems as $cart) {
-                foreach ($cart->cartdetails as $detail) {
-                    $discount['product_price'] += $detail->quantity * $detail->regular_price;
-                    $discount['final_price'] += $detail->quantity * $detail->price;
-                }
-            }
-            
-           $discount['discount'] = $discount['product_price'] - $discount['final_price'];
-            
-            
+
             // যদি cart empty হয়
             if ($cartItems->isEmpty()) {
                 return response()->json([
@@ -396,16 +380,37 @@ class CartController extends Controller
                     'data'    => []
                 ], 200);
             }
-            
-            // Response
+
+            $discount = [
+                'product_price' => 0,
+                'final_price'   => 0,
+                'discount'      => 0,
+            ];
+
+            foreach ($cartItems as $cart) {
+                foreach ($cart->cartdetails as $detail) {
+                    // Calculate prices
+                    $discount['product_price'] += $detail->quantity * $detail->regular_price;
+                    $discount['final_price'] += $detail->quantity * $detail->price;
+
+                    $sizeData = Productsize::where('product_id', $detail->product_id)
+                        ->where('size', $detail->size)
+                        ->first();
+
+                    $detail->stock = $sizeData ? $sizeData->stock : 0;
+                }
+            }
+
+            $discount['discount'] = $discount['product_price'] - $discount['final_price'];
+
             return response()->json([
-                'status'  => 'success',
-                'message' => 'Cart Products',
-                'data'    => $cartItems,
+                'status'       => 'success',
+                'message'      => 'Cart Products',
+                'data'         => $cartItems,
                 'priceSummary' => $discount
             ], 200);
-        } catch (\Exception $e) {
 
+        } catch (\Exception $e) {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Something went wrong',
@@ -413,23 +418,84 @@ class CartController extends Controller
             ], 500);
         }
     }
-    
+
+
+    // public function cartProducts()
+    // {
+    //     try {
+
+    //         $user = Auth::guard('customer')->user();
+    //         $today = Carbon::today();
+    //         $setting = GeneralSetting::first();
+
+    //         if (!$user) {
+    //             return response()->json([
+    //                 'status'  => 'error',
+    //                 'message' => 'Unauthenticated',
+    //                 'data'    => [],
+    //             ], 401);
+    //         }
+
+    //         $cartItems = Cart::where('user_id', $user->id)
+    //             ->with('cartdetails')
+    //             ->get();
+
+    //         $discount = [];
+    //         $discount['product_price'] = 0;
+    //         $discount['final_price'] = 0;
+    //         // calculate prices from cart items
+    //         foreach ($cartItems as $cart) {
+    //             foreach ($cart->cartdetails as $detail) {
+    //                 $discount['product_price'] += $detail->quantity * $detail->regular_price;
+    //                 $discount['final_price'] += $detail->quantity * $detail->price;
+    //             }
+    //         }
+
+    //        $discount['discount'] = $discount['product_price'] - $discount['final_price'];
+
+
+    //         // যদি cart empty হয়
+    //         if ($cartItems->isEmpty()) {
+    //             return response()->json([
+    //                 'status'  => 'empty',
+    //                 'message' => 'Cart is empty',
+    //                 'data'    => []
+    //             ], 200);
+    //         }
+
+    //         // Response
+    //         return response()->json([
+    //             'status'  => 'success',
+    //             'message' => 'Cart Products',
+    //             'data'    => $cartItems,
+    //             'priceSummary' => $discount
+    //         ], 200);
+    //     } catch (\Exception $e) {
+
+    //         return response()->json([
+    //             'status'  => 'error',
+    //             'message' => 'Something went wrong',
+    //             'error'   => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
+
     public function cartOrderProducts(Request $request)
     {
         $request->validate([
             'cart_ids'   => 'required|array|min:1',
             'cart_ids.*' => 'integer'
         ]);
-    
+
         $user = Auth::guard('customer')->user();
         $today = Carbon::today();
         $setting = GeneralSetting::first();
-    
+
         $cartItems = Cart::where('user_id', $user->id)
             ->whereIn('id', $request->cart_ids)
             ->with('cartdetails')
             ->get();
-        
+
         $discount = [];
             $discount['product_price'] = 0;
             $discount['final_price'] = 0;
@@ -440,9 +506,9 @@ class CartController extends Controller
                     $discount['final_price'] += $detail->quantity * $detail->price;
                 }
             }
-            
+
            $discount['discount'] = $discount['product_price'] - $discount['final_price'];
-    
+
         return response()->json([
             'status'    => $cartItems->isEmpty() ? 'error' : 'success',
             'message'   => $cartItems->isEmpty() ? 'Cart is empty' : 'Cart Products',
@@ -452,7 +518,7 @@ class CartController extends Controller
         ]);
     }
 
-    
+
 
 public function cartRemove($id)
 {
@@ -491,7 +557,7 @@ public function cartDetailsUpdate(Request $request, $id){
     $cartDetails = CartDetails::find($id);
     $cartDetails->quantity = $request->quantity;
     $cartDetails->save();
-    
+
     return response()->json([
                 'status'  => 'success',
                 'message' => 'Update To Cart',
