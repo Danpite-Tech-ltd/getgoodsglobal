@@ -13,17 +13,20 @@ class SliderController extends Controller
     public function main_sliders()
     {
         $mainslider = Banner::where('category_id', 1)->get();
+        $mobileslider = Banner::where('category_id', 12)->get();
+        $data['mainslider'] = $mainslider;
+        $data['mobileslider'] = $mobileslider;
 
         return response()->json([
             'status' => 'success',
             'message' => 'Sliders',
-            'data' => $mainslider,
+            'data' => $data,
         ], 200);
     }
 
     public function gallery_slider()
     {
-        $galleryslider = BannerCategory::where('id', '!=', 1)->with('banners')->get();
+        $galleryslider = BannerCategory::where('id', '!=', 1)->where('id', '!=', 12)->with('banners')->get();
 
         return response()->json([
             'status' => 'success',
@@ -31,7 +34,7 @@ class SliderController extends Controller
             'data' => $galleryslider,
         ], 200);
     }
-    
+
     public function featured_banner()
     {
         $featured_banner = FeaturedBanner::first();
