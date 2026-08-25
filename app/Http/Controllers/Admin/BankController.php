@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
 use App\Models\Bank;
 use Toastr;
@@ -26,7 +27,7 @@ class BankController extends Controller
             'image' => 'required', 'image',
             'status' => 'required',
         ]);
-        
+
         if($request->file('image')){
             $file = $request->file('image');
             $name = time().$file->getClientOriginalName();
@@ -34,20 +35,20 @@ class BankController extends Controller
             $file->move($uploadPath,$name);
             $fileUrl =$uploadPath.$name;
         }
-        
+
         $input = $request->all();
         $input['image'] = $fileUrl;
         Bank::create($input);
         Toastr::success('Success','Data insert successfully');
         return redirect()->route('bank.index');
     }
-    
+
     public function edit($id)
     {
         $edit_data = Bank::find($id);
         return view('backEnd.bank.edit',compact('edit_data'));
     }
-    
+
     public function update(Request $request)
     {
         $this->validate($request, [
@@ -57,10 +58,10 @@ class BankController extends Controller
         ]);
         $update_data = Bank::find($request->id);
         $input = $request->all();
-        
+
         $image = $request->file('image');
         if($image){
-           // image with intervention 
+           // image with intervention
             $file = $request->file('image');
             $name = time().$file->getClientOriginalName();
             $uploadPath = 'public/uploads/bank/';
@@ -73,14 +74,14 @@ class BankController extends Controller
         }else{
             $input['image'] = $update_data->image;
         }
-        
+
         $input['status'] = $request->status?1:0;
         $update_data->update($input);
 
         Toastr::success('Success','Data update successfully');
         return redirect()->route('bank.index');
     }
- 
+
     public function inactive(Request $request)
     {
         $inactive = Bank::find($request->hidden_id);
