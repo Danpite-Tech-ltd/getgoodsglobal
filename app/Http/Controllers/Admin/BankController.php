@@ -28,6 +28,16 @@ class BankController extends Controller
             'status' => 'required',
         ]);
 
+        $input = $request->only([
+            'account_name',
+            'cod_acount_name',
+            'account_number',
+            'branch',
+            'routing_number',
+            'cod',
+            'description',
+        ]);
+        
         if($request->file('image')){
             $file = $request->file('image');
             $name = time().$file->getClientOriginalName();
@@ -36,7 +46,6 @@ class BankController extends Controller
             $fileUrl =$uploadPath.$name;
         }
 
-        $input = $request->all();
         $input['image'] = $fileUrl;
         Bank::create($input);
         Toastr::success('Success','Data insert successfully');
@@ -57,7 +66,15 @@ class BankController extends Controller
             'status' => 'required',
         ]);
         $update_data = Bank::find($request->id);
-        $input = $request->all();
+        $input = $request->only([
+            'account_name',
+            'cod_acount_name',
+            'account_number',
+            'branch',
+            'routing_number',
+            'cod',
+            'description',
+        ]);
 
         $image = $request->file('image');
         if($image){
