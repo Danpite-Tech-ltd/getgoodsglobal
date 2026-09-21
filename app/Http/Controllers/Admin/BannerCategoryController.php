@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\BannerCategory;
 use Toastr;
+use File;
 class BannerCategoryController extends Controller
 {
     // function __construct()
@@ -33,7 +34,7 @@ class BannerCategoryController extends Controller
             'icon' => 'nullable', 'image',
             'status' => 'required',
         ]);
-        
+
         if($request->file('icon')){
             $file = $request->file('icon');
             $name = time().$file->getClientOriginalName();
@@ -41,20 +42,20 @@ class BannerCategoryController extends Controller
             $file->move($uploadPath,$name);
             $fileUrl =$uploadPath.$name;
         }
-        
+
         $input = $request->all();
         $input['icon'] = $fileUrl;
         BannerCategory::create($input);
         Toastr::success('Success','Data insert successfully');
         return redirect()->route('banner_category.index');
     }
-    
+
     public function edit($id)
     {
         $edit_data = BannerCategory::find($id);
         return view('backEnd.banner.category.edit',compact('edit_data'));
     }
-    
+
     public function update(Request $request)
     {
         $this->validate($request, [
@@ -62,10 +63,10 @@ class BannerCategoryController extends Controller
         ]);
         $update_data = BannerCategory::find($request->id);
         $input = $request->all();
-        
+
         $image = $request->file('icon');
         if($image){
-           // image with intervention 
+           // image with intervention
             $file = $request->file('icon');
             $name = time().$file->getClientOriginalName();
             $uploadPath = 'public/uploads/banner/';
@@ -78,14 +79,14 @@ class BannerCategoryController extends Controller
         }else{
             $input['icon'] = $update_data->icon;
         }
-        
+
         $input['status'] = $request->status?1:0;
         $update_data->update($input);
 
         Toastr::success('Success','Data update successfully');
         return redirect()->route('banner_category.index');
     }
- 
+
     public function inactive(Request $request)
     {
         $inactive = BannerCategory::find($request->hidden_id);
