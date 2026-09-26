@@ -843,6 +843,30 @@
                                     <div class="col-8">
                                         <div class="text-end">
                                             <h3 class="text-dark mt-1"><span
+                                                    data-plugin="counterup">{{ $total_cp_inventory }}</span>
+                                               
+                                            </h3>
+                                            <p class="text-dark fw-bold mb-1" style="font-size:12px;">Total Inventory Value (CP)
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div> <!-- end row-->
+                            </div>
+                        </div> <!-- end widget-rounded-circle-->
+                    </div> <!-- end col-->
+                    <div class="col-md-6 col-xl-3">
+                        <div class="widget-rounded-circle card card-bg">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-4">
+                                        <div class="avatar-lg rounded-circle bg-soft-primary border-primary border">
+                                            <i class="fe-shopping-cart font-22 avatar-title text-primary"></i>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-8">
+                                        <div class="text-end">
+                                            <h3 class="text-dark mt-1"><span
                                                     data-plugin="counterup">{{ $total_inventory }}</span>
                                                
                                             </h3>

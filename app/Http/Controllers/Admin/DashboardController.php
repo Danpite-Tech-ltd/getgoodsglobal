@@ -44,6 +44,12 @@ class DashboardController extends Controller
         ->join('productsizes', 'products.id', '=', 'productsizes.product_id')
         ->sum(\DB::raw('productsizes.SalePrice * productsizes.stock'));
 
+        $total_cp_inventory = Product::whereHas('sizes', function ($q) {
+            $q->where('stock', '>', 0);
+        })
+        ->join('productsizes', 'products.id', '=', 'productsizes.product_id')
+        ->sum(\DB::raw('productsizes.PurchasePrice * productsizes.stock'));
+
 
         $stock_out_sku = Product::withCount(['sizes' => function ($query) {
             $query->where('stock', '<', 1);
@@ -188,7 +194,7 @@ class DashboardController extends Controller
 
         }
 
-        return view('backEnd.admin.dashboard', compact('total_order', 'today_order', 'total_product', 'total_customer', 'total_visitor', 'latest_order', 'latest_customer', 'today_delivery', 'total_delivery', 'last_week', 'last_month', 'monthly_sale', 'pending_order', 'prossecing_order', 'Delivered_order', 'partial_paid_order', 'refund_order', 'confirm_order', 'shipped_courier', 'return_order', 'cancel_rate', 'return_rate', 'rts', 'refund_initiated', 'total_cancel_order', 'categories', 'courier_payment', 'officesale_payment', 'expense_others', 'total_payment', 'boost_cost', 'office_cost', 'bank_deposit', 'packaging_cost', 'transport_cost', 'others_expense_cost', 'total_cost', 'account_balance', 'total_sku', 'available_sku', 'stock_out_sku', 'low_sku', 'total_inventory', 'total_sale','aov'));
+        return view('backEnd.admin.dashboard', compact('total_order', 'today_order', 'total_product', 'total_customer', 'total_visitor', 'latest_order', 'latest_customer', 'today_delivery', 'total_delivery', 'last_week', 'last_month', 'monthly_sale', 'pending_order', 'prossecing_order', 'Delivered_order', 'partial_paid_order', 'refund_order', 'confirm_order', 'shipped_courier', 'return_order', 'cancel_rate', 'return_rate', 'rts', 'refund_initiated', 'total_cancel_order', 'categories', 'courier_payment', 'officesale_payment', 'expense_others', 'total_payment', 'boost_cost', 'office_cost', 'bank_deposit', 'packaging_cost', 'transport_cost', 'others_expense_cost', 'total_cost', 'account_balance', 'total_sku', 'available_sku', 'stock_out_sku', 'low_sku', 'total_inventory', 'total_cp_inventory', 'total_sale','aov'));
     }
 
      public function salesChart(Request $request)

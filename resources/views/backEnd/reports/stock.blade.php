@@ -156,8 +156,12 @@
                                     <th>Brand</th>
                                     <th>Total Stock</th>
                                     <th>Current Stock</th>
-                                    <th>Sale Price</th>
-                                    <th>Total</th>
+
+                                    <th>Per Unit Cost</th>
+                                    <th>Per Unit Regular Price</th>
+                                    <th>Per Unit Sale Price</th>
+                                    <th>Total Cost Price</th>
+                                    <th>Total Sales Price</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
@@ -179,7 +183,11 @@
                                         <td>{{ $size->product->brand->name ?? 'No Brand' }}</td>
                                         <td>{{ $size->total_stock }}</td>
                                         <td>{{ $size->stock }}</td>
+
+                                        <td>{{ $size->PurchasePrice }}</td>
+                                        <td>{{ $size->RegularPrice }}</td>
                                         <td>{{ $size->SalePrice }}</td>
+                                        <td>{{ $size->stock * $size->PurchasePrice }}</td>
                                         <td>{{ $size->stock * $size->SalePrice }}</td>
                                         <td>{{
                                             ($size->stock > 5) ? "Available" :
