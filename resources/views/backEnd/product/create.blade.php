@@ -471,10 +471,10 @@ $(document).ready(function () {
                             '<tr>' +
                                 '<th style="width:5%;">ID</th>' +
                                 '<th style="width:20%;">Size / Weight</th>' +
-                                '<th style="width:20%;">Stock</th>' +
-                                // '<th style="width:20%;">Purchase Price</th>' +
-                                '<th style="width:20%;">Regular Price</th>' +
-                                '<th style="width:20%;">Sale Price</th>' +
+                                '<th style="width:15%;">Stock</th>' +
+                                '<th style="width:15%;">Purchase Price</th>' +
+                                '<th style="width:15%;">Regular Price</th>' +
+                                '<th style="width:15%;">Sale Price</th>' +
                                 '<th style="width:15%;">Action</th>' +
                             '</tr>' +
                         '</thead>' +
@@ -536,15 +536,15 @@ $(document).ready(function () {
                         '<input type="number" class="form-control form-control-sm size-stock" ' +
                             'placeholder="Stock" min="0">' +
                     '</td>' +
-                    // '<td>' +
-                    //     '<div class="input-group input-group-sm">' +
-                    //         '<input type="number" class="form-control size-purchase-price" ' +
-                    //             'placeholder="0.00" min="0" step="0.01">' +
-                    //         '<div class="input-group-append">' +
-                    //             '<span class="input-group-text">TK</span>' +
-                    //         '</div>' +
-                    //     '</div>' +
-                    // '</td>' +
+                    '<td>' +
+                        '<div class="input-group input-group-sm">' +
+                            '<input type="number" class="form-control size-purchase-price" ' +
+                                'placeholder="0.00" min="0" step="0.01">' +
+                            '<div class="input-group-append">' +
+                                '<span class="input-group-text">TK</span>' +
+                            '</div>' +
+                        '</div>' +
+                    '</td>' +
                     '<td>' +
                         '<div class="input-group input-group-sm">' +
                             '<input type="number" class="form-control RegularPrice" ' +
@@ -713,7 +713,7 @@ $(document).ready(function () {
                     formData.append('size[' + colorID + '][' + sid + '][sizeID]',         sid);
                     formData.append('size[' + colorID + '][' + sid + '][size]',           $row.find('td:nth-child(2) span').text().trim());
                     formData.append('size[' + colorID + '][' + sid + '][stock]',          $row.find('.size-stock').val());
-                    // formData.append('size[' + colorID + '][' + sid + '][purchase_price]', $row.find('.size-purchase-price').val());
+                    formData.append('size[' + colorID + '][' + sid + '][purchase_price]', $row.find('.size-purchase-price').val());
                     formData.append('size[' + colorID + '][' + sid + '][RegularPrice]',     $row.find('.RegularPrice').val());
                     formData.append('size[' + colorID + '][' + sid + '][sale_price]',     $row.find('.size-sale-price').val());
                 });

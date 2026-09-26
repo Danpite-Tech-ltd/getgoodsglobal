@@ -181,7 +181,7 @@ class ProductController extends Controller
                         $productSize->size          = $sizeData['size'];
                         $productSize->stock         = $sizeData['stock'];
                         $productSize->total_stock         = $sizeData['stock'];
-                        // $productSize->PurchasePrice = $sizeData['purchase_price'];
+                        $productSize->PurchasePrice = $sizeData['purchase_price'];
                         $productSize->SalePrice     = $sizeData['sale_price'];
                         $productSize->RegularPrice     = $sizeData['RegularPrice'];
                         $productSize->save();
@@ -457,6 +457,7 @@ class ProductController extends Controller
                     $productSize->total_stock   = $total_stock;
                     $productSize->SalePrice     = $sizeData['sale_price'];
                     $productSize->RegularPrice  = $sizeData['RegularPrice'];
+                    $productSize->PurchasePrice  = $sizeData['purchase_price'];
 
                     $sizeDbID ? $productSize->update() : $productSize->save();
                 }
