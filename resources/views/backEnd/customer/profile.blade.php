@@ -65,6 +65,33 @@
                                 <td>Upzlila </td> 
                                 <td class="ms-2">{{$profile->area}}</td>
                             </tr>
+                            <tr class="text-muted mb-1 font-13">
+                                <td>Update Password </td> 
+                                <td class="ms-2">
+                                    <form action="{{ route('customer.password.update') }}" method="POST" class="d-flex align-items-center gap-1">
+                                        @csrf
+
+                                        <input type="text"
+                                            name="password"
+                                            class="form-control form-control-sm"
+                                            placeholder="update password"
+                                            >
+                                         
+                                        <input type="hidden" name="id" value="{{ $profile->id }}" >
+
+                                        <button type="submit"
+                                                class="btn btn-sm btn-primary"
+                                                title="Submit">
+                                            <i class="fe-check"></i>
+                                        </button>
+                                    </form>
+                                    @error('password')
+                                            <span class="text-danger" style="font-size: 12px;">
+                                                {{ $message }}
+                                            </span>
+                                        @enderror
+                                </td>
+                            </tr>
                             </tbody>
                         </table>
                     </div>

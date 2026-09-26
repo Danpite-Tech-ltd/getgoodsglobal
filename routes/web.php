@@ -354,7 +354,7 @@ Route::group(['namespace' => 'Admin', 'middleware' => ['auth', 'lock', 'check_re
     // bulk quantity
     Route::get('bulkquantity/{id}',[BulkqtyController::class,'index'])->name('productbulkquantity.index');
     Route::post('bulkquantity/store',[BulkqtyController::class,'store'])->name('productbulkquantity.store');
-    Route::post('bulkquantity/update/{id}',[BulkqtyController::class,'update'])->name('productbulkquantity.update'); 
+    Route::post('bulkquantity/update/{id}',[BulkqtyController::class,'update'])->name('productbulkquantity.update');
     Route::get('bulkquantity/destroy/{id}',[BulkqtyController::class,'destroy'])->name('productbulkquantity.destroy');
     // account manage
     // deposit
@@ -395,7 +395,7 @@ Route::group(['namespace' => 'Admin', 'middleware' => ['auth', 'lock', 'check_re
     Route::get('ticket/manage', [TicketController::class, 'index'])->name('ticket.index');
     Route::get('ticket/edit/{ticket_id}', [TicketController::class, 'edit'])->name('ticket.edit');
     Route::post('ticket/replay/{ticketdetails_id}', [TicketController::class, 'ticketdetails_replay'])->name('ticket.replay');
-    
+
     Route::post('ticket/inactive', [TicketController::class, 'inactive'])->name('ticket.inactive');
     Route::post('ticket/active', [TicketController::class, 'active'])->name('ticket.active');
 
@@ -533,9 +533,9 @@ Route::group(['namespace' => 'Admin', 'middleware' => ['auth', 'lock', 'check_re
     Route::get('thana/edit/{id}', [ShippingChargeController::class, 'thana_edit'])->name('thana.edit');
     Route::post('thana/update/{id}', [ShippingChargeController::class, 'thana_update'])->name('thana.update');
     Route::get('thana/destroy/{id}', [ShippingChargeController::class, 'thana_destroy'])->name('thana.destroy');
-    
-    
-    
+
+
+
     Route::get('shipping-charge/manage', [ShippingChargeController::class, 'index'])->name('shippingcharges.index');
     Route::get('shipping-charge/create', [ShippingChargeController::class, 'create'])->name('shippingcharges.create');
     Route::post('shipping-charge/save', [ShippingChargeController::class, 'store'])->name('shippingcharges.store');
@@ -549,6 +549,10 @@ Route::group(['namespace' => 'Admin', 'middleware' => ['auth', 'lock', 'check_re
     Route::get('customer', [CustomerManageController::class, 'index'])->name('customers.index');
     Route::get('customer/manage', [CustomerManageController::class, 'index'])->name('customers.index');
     Route::get('customer/{id}/edit', [CustomerManageController::class, 'edit'])->name('customers.edit');
+    Route::delete('customer/{id}/delete', [CustomerManageController::class, 'delete'])
+    ->name('customers.delete');
+    Route::post('customer/password/update', [CustomerManageController::class, 'passwordUpdate'])
+    ->name('customer.password.update');
     Route::post('customer/update', [CustomerManageController::class, 'update'])->name('customers.update');
     Route::get('customer/{id}/message', [CustomerManageController::class, 'message'])->name('customers.message');
     Route::post('customer/message', [CustomerManageController::class, 'messageSend'])->name('customers.messageSend');
@@ -565,7 +569,7 @@ Route::group(['namespace' => 'Admin', 'middleware' => ['auth', 'lock', 'check_re
     Route::get('coupon', [CouponController::class, 'index'])->name('coupon');
     Route::post('coupon/store', [CouponController::class, 'store'])->name('coupon.store');
     Route::get('coupon/delete/{id}', [CouponController::class, 'delete'])->name('delete.coupon');
-    // Route::post('coupon/update/{id}',[CouponController::class,'update'])->name('coupon.update'); 
+    // Route::post('coupon/update/{id}',[CouponController::class,'update'])->name('coupon.update');
     Route::put('/coupon/update/{id}', [CouponController::class,'update'])->name('coupon.update');
 
 

@@ -22,7 +22,7 @@ class CustomerManageController extends Controller
         }else{
              $show_data = Customer::paginate(20);
         }
-       
+
         return view('backEnd.customer.index',compact('show_data'));
     }
 
@@ -30,13 +30,49 @@ class CustomerManageController extends Controller
         $edit_data = Customer::find($id);
         return view('backEnd.customer.edit',compact('edit_data'));
     }
-    
+
+    public function passwordUpdate(Request $request){
+        $this->validate($request, [
+            'password' => 'required|min:6',
+            'id' => 'required|exists:customers,id',
+        ]);
+
+        $customer = Customer::find($request->id);
+        $customer->password = Hash::make($request->password);
+        $customer->save();
+
+        Toastr::success('Success','Password updated successfully');
+        return redirect()->back();
+    }
+
+    public function delete($id)
+    {
+        try {
+
+            $customer = Customer::findOrFail($id);
+
+            $customer->delete();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Customer deleted successfully.'
+            ]);
+
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to delete customer.'
+            ], 500);
+        }
+    }
+
     public function message($id){
         $edit_data = Customer::find($id);
-        
+
         return view('backEnd.customer.message',compact('edit_data'));
     }
-    
+
     public function update(Request $request){
         $this->validate($request, [
             'name' => 'required',
@@ -47,23 +83,23 @@ class CustomerManageController extends Controller
         $input = $request->except('hidden_id');
         $update_data = Customer::find($request->hidden_id);
         // new password
-        
-        
-        if(!empty($input['password'])){ 
+
+
+        if(!empty($input['password'])){
             $input['password'] = Hash::make($input['password']);
         }else{
-            $input = Arr::except($input,array('password'));    
+            $input = Arr::except($input,array('password'));
         }
 
         // new image
         $image = $request->file('image');
         if($image){
-            // image with intervention 
+            // image with intervention
             $name =  time().'-'.$image->getClientOriginalName();
             $name = preg_replace('"\.(jpg|jpeg|png|webp)$"', '.webp',$name);
             $name = strtolower(preg_replace('/\s+/', '-', $name));
             $uploadpath = 'public/uploads/customer/';
-            $imageUrl = $uploadpath.$name; 
+            $imageUrl = $uploadpath.$name;
             $img=Image::make($image->getRealPath());
             $img->encode('webp', 90);
             $width = 100;
@@ -84,23 +120,23 @@ class CustomerManageController extends Controller
         Toastr::success('Success','Data update successfully');
         return redirect()->route('customers.index');
     }
-    
+
     public function messageSend(Request $request){
         $this->validate($request, [
             'name' => 'required',
             'phone' => 'required',
             'message' => 'required',
         ]);
-        
+
         $sms_gateway = SmsGateway::where('status',1)->first();
-        
+
         $url = $sms_gateway->url;
         $api_key = $sms_gateway->api_key;
         $senderid = $sms_gateway->serderid;
         $number = $request->phone;
         $message = $request->message;
 
-     
+
         $data = [
             "api_key" => $api_key,
             "senderid" => $senderid,
@@ -119,7 +155,7 @@ class CustomerManageController extends Controller
         Toastr::success('Success','Message send successfully');
         return redirect()->route('customers.index');
     }
- 
+
     public function inactive(Request $request){
         $inactive = Customer::find($request->hidden_id);
         $inactive->status = 'inactive';

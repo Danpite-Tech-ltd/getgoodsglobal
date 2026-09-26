@@ -113,7 +113,12 @@
                                                     <a href="{{ route('customers.profile', ['id' => $value->id]) }}"
                                                         class="btn btn-xs btn-blue waves-effect waves-light"><i
                                                             class="fe-eye"></i></a>
-                                                            
+                                                    <a href="javascript:void(0)"
+                                                        data-id="{{ $value->id }}"
+                                                        class="btn btn-xs btn-danger waves-effect waves-light customer-delete">
+                                                            <i class="fe-trash-2"></i>
+                                                    </a>
+
                                                     <!--<a href="{{ route('customers.message', ['id' => $value->id]) }}"-->
                                                     <!--    class="btn btn-xs btn-blue waves-effect waves-light"><i class="fe-message-square"></i></a>-->
 
@@ -181,4 +186,73 @@
             });
         });
     </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    $(document).on('click', '.customer-delete', function () {
+
+        let id = $(this).data('id');
+        let button = $(this);
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+
+            if (result.isConfirmed) {
+
+                $.ajax({
+                    url: "{{ url('admin/customer') }}/" + id + "/delete",
+                    type: "DELETE",
+                    data: {
+                        _token: "{{ csrf_token() }}"
+                    },
+
+                    success: function (response) {
+
+                        if (response.status) {
+
+                            button.closest('tr').fadeOut(300, function () {
+                                $(this).remove();
+                            });
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deleted!',
+                                text: response.message,
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+
+                        } else {
+
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: response.message
+                            });
+                        }
+                    },
+
+                    error: function (xhr) {
+
+                        console.log(xhr.responseJSON);
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: 'Something went wrong!'
+                        });
+                    }
+                });
+            }
+        });
+    });
+</script>
 @endsection
