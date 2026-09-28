@@ -12,8 +12,8 @@ class SliderController extends Controller
 {
     public function main_sliders()
     {
-        $mainslider = Banner::where('category_id', 1)->get();
-        $mobileslider = Banner::where('category_id', 12)->get();
+        $mainslider = Banner::where('category_id', 1)->where('status', 1)->get();
+        $mobileslider = Banner::where('category_id', 12)->where('status', 1)->get();
         $data['mainslider'] = $mainslider;
         $data['mobileslider'] = $mobileslider;
 
@@ -26,7 +26,7 @@ class SliderController extends Controller
 
     public function gallery_slider()
     {
-        $galleryslider = BannerCategory::where('id', '!=', 1)->where('id', '!=', 12)->with('banners')->get();
+        $galleryslider = BannerCategory::where('id', '!=', 1)->where('id', '!=', 12)->where('status', 1)->with('banners')->get();
 
         return response()->json([
             'status' => 'success',
