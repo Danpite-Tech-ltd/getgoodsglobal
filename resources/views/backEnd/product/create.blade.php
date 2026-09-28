@@ -540,27 +540,27 @@ $(document).ready(function () {
                         '<div class="input-group input-group-sm">' +
                             '<input type="number" class="form-control size-purchase-price" ' +
                                 'placeholder="0.00" min="0" step="0.01">' +
-                            '<div class="input-group-append">' +
-                                '<span class="input-group-text">TK</span>' +
-                            '</div>' +
+                            // '<div class="input-group-append">' +
+                            //     '<span class="input-group-text">TK</span>' +
+                            // '</div>' +
                         '</div>' +
                     '</td>' +
                     '<td>' +
                         '<div class="input-group input-group-sm">' +
                             '<input type="number" class="form-control RegularPrice" ' +
                                 'placeholder="0.00" min="0" step="0.01">' +
-                            '<div class="input-group-append">' +
-                                '<span class="input-group-text">TK</span>' +
-                            '</div>' +
+                            // '<div class="input-group-append">' +
+                            //     '<span class="input-group-text">TK</span>' +
+                            // '</div>' +
                         '</div>' +
                     '</td>' +
                     '<td>' +
                         '<div class="input-group input-group-sm">' +
                             '<input type="number" class="form-control size-sale-price" ' +
                                 'placeholder="0.00" min="0" step="0.01">' +
-                            '<div class="input-group-append">' +
-                                '<span class="input-group-text">TK</span>' +
-                            '</div>' +
+                            // '<div class="input-group-append">' +
+                            //     '<span class="input-group-text">TK</span>' +
+                            // '</div>' +
                         '</div>' +
                     '</td>' +
                     '<td class="text-center">' +

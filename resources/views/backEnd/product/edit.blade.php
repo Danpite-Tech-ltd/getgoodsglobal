@@ -391,7 +391,7 @@
                                                                         class="rounded mr-3" style="width:40px; height:40px; object-fit:cover;">
                                                                 @endif
 
-                                                                
+
 
                                                                 <label class="mb-0 text-muted small mr-2">Color Image:</label>
                                                                 <input type="file" class="form-control form-control-sm variant-image-input"
@@ -442,9 +442,9 @@
                                                                                         class="form-control size-purchase-price"
                                                                                         value="{{ $size->PurchasePrice }}"
                                                                                         min="0" step="0.01">
-                                                                                    <div class="input-group-append">
+                                                                                    {{-- <div class="input-group-append">
                                                                                         <span class="input-group-text">TK</span>
-                                                                                    </div>
+                                                                                    </div> --}}
                                                                                 </div>
                                                                             </td>
                                                                             <td>
@@ -453,9 +453,9 @@
                                                                                         class="form-control RegularPrice"
                                                                                         value="{{ $size->RegularPrice }}"
                                                                                         min="0" step="0.01">
-                                                                                    <div class="input-group-append">
+                                                                                    {{-- <div class="input-group-append">
                                                                                         <span class="input-group-text">TK</span>
-                                                                                    </div>
+                                                                                    </div> --}}
                                                                                 </div>
                                                                             </td>
                                                                             <td>
@@ -464,9 +464,9 @@
                                                                                         class="form-control size-sale-price"
                                                                                         value="{{ $size->SalePrice }}"
                                                                                         min="0" step="0.01">
-                                                                                    <div class="input-group-append">
+                                                                                    {{-- <div class="input-group-append">
                                                                                         <span class="input-group-text">TK</span>
-                                                                                    </div>
+                                                                                    </div> --}}
                                                                                 </div>
                                                                             </td>
                                                                             <td class="text-center">
@@ -764,27 +764,27 @@
                         '<div class="input-group input-group-sm">' +
                             '<input type="number" class="form-control size-purchase-price" ' +
                                 'placeholder="0.00" min="0" step="0.01">' +
-                            '<div class="input-group-append">' +
-                                '<span class="input-group-text">TK</span>' +
-                            '</div>' +
+                            // '<div class="input-group-append">' +
+                            //     '<span class="input-group-text">TK</span>' +
+                            // '</div>' +
                         '</div>' +
                     '</td>' +
                     '<td>' +
                         '<div class="input-group input-group-sm">' +
                             '<input type="number" class="form-control RegularPrice" ' +
                                 'placeholder="0.00" min="0" step="0.01">' +
-                            '<div class="input-group-append">' +
-                                '<span class="input-group-text">TK</span>' +
-                            '</div>' +
+                            // '<div class="input-group-append">' +
+                            //     '<span class="input-group-text">TK</span>' +
+                            // '</div>' +
                         '</div>' +
                     '</td>' +
                     '<td>' +
                         '<div class="input-group input-group-sm">' +
                             '<input type="number" class="form-control size-sale-price" ' +
                                 'placeholder="0.00" min="0" step="0.01">' +
-                            '<div class="input-group-append">' +
-                                '<span class="input-group-text">TK</span>' +
-                            '</div>' +
+                            // '<div class="input-group-append">' +
+                            //     '<span class="input-group-text">TK</span>' +
+                            // '</div>' +
                         '</div>' +
                     '</td>' +
                     '<td class="text-center">' +
@@ -846,7 +846,7 @@
                 type: 'GET',
                 url: '{{ url("admin/remove-varient") }}' + '/' + dbID,
                 success: function (response) {
-                    
+
                     var data = JSON.parse(response);
                     if (data.status ==='success') {
                         toastr.success(data.message);
