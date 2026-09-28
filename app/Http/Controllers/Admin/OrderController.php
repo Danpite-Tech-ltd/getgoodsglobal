@@ -575,7 +575,7 @@ class OrderController extends Controller
 
 
         public function stock_report(Request $request){
-            $productsizeQuery = Productsize::with('product.category', 'product.brand')
+            $productsizeQuery = Productsize::with('product.category', 'product.brand', 'color')
                 ->whereHas('product', function($q){
                     $q->where('status', 1);
                 });
@@ -614,7 +614,16 @@ class OrderController extends Controller
                 }
             }
 
-            $sizes = $productsizeQuery->paginate(100)->appends($request->query());
+            // Dynamic per-page/show entries (20, 50, 100, all)
+            $show = $request->show ?? 100;
+            if ($show === 'all') {
+                $totalCount = (clone $productsizeQuery)->count();
+                $per_page = $totalCount > 0 ? $totalCount : 100;
+            } else {
+                $per_page = (int)$show > 0 ? (int)$show : 100;
+            }
+
+            $sizes = $productsizeQuery->paginate($per_page)->appends($request->query());
             $categories = Category::where('status',1)->get();
 
             return view('backEnd.reports.stock', compact('sizes', 'categories'));

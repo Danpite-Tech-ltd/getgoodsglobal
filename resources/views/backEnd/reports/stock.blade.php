@@ -51,7 +51,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <form class="no-print">
+                    <form class="no-print" id="report-filter-form">
                         <div class="row">
                             <div class="col-sm-2">
                                 <div class="form-group">
@@ -120,22 +120,33 @@
                                 </div>
                             </div>
 
-                            <!--col-sm-3-->
+                            <input type="hidden" name="show" id="show-hidden-input" value="{{ request()->get('show', 100) }}">
+
                             <div class="col-sm-12">
                                 <div class="form-group mb-3">
-                                    <button class="btn btn-primary">Submit</button>
+                                    <button type="submit" class="btn btn-primary"><i class="fa fa-filter"></i> Submit</button>
+                                    <a href="{{ route('admin.stock_report') }}" class="btn btn-secondary"><i class="fa fa-undo"></i> Reset</a>
                                 </div>
                             </div>
                             <!-- col end -->
                         </div>
                     </form>
-                    <div class="row mb-3">
-                        <div class="col-sm-6 no-print">
-                            {{ $sizes->links('pagination::bootstrap-4') }}
+                    <div class="row mb-3 align-items-center no-print">
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-center flex-wrap">
+                                <label class="me-2 mb-0 fw-bold">Show:</label>
+                                <select class="form-select form-control d-inline-block" style="width: auto; max-width: 120px;" id="quick-show-select">
+                                    <option value="20" {{ request()->get('show') == '20' ? 'selected' : '' }}>20</option>
+                                    <option value="50" {{ request()->get('show') == '50' ? 'selected' : '' }}>50</option>
+                                    <option value="100" {{ (request()->get('show') == '100' || !request()->has('show')) ? 'selected' : '' }}>100</option>
+                                    <option value="all" {{ request()->get('show') == 'all' ? 'selected' : '' }}>All</option>
+                                </select>
+                                <span class="text-muted ms-2">entries (Showing {{ $sizes->firstItem() ?? 0 }} to {{ $sizes->lastItem() ?? 0 }} of {{ $sizes->total() }})</span>
+                            </div>
                         </div>
                         <div class="col-sm-6">
                             <div class="export-print text-end">
-                                <button onclick="printFunction()"class="no-print btn btn-success"><i
+                                <button onclick="printFunction()" class="no-print btn btn-success"><i
                                         class="fa fa-print"></i> Print</button>
                                 <button id="export-excel-button" class="no-print btn btn-info"><i
                                         class="fas fa-file-export"></i> Export</button>
@@ -169,15 +180,12 @@
                             <tbody>
                                 @php $stock = 0; $total = 0;@endphp
                                 @foreach ($sizes as $key => $size)
-                                    @php
-                                        $colorName = App\Models\Color::find($size->color_id)->colorName;
-                                    @endphp
                                     <tr>
-                                        <td>{{ $key + 1 }}</td>
+                                        <td>{{ ($sizes->firstItem() ?? 1) + $key }}</td>
                                         <td>{{ $size->product->name ?? '' }}</td>
                                         <td>{{ $size->product->product_code ?? '' }}</td>
                                         <td>{{ $size->sku ?? '' }}</td>
-                                        <td>{{ $colorName ?? '' }}</td>
+                                        <td>{{ $size->color->colorName ?? '' }}</td>
                                         <td>{{ $size->size }}</td>
                                         <td>{{ $size->product->category->name ?? '' }}</td>
                                         <td>{{ $size->product->brand->name ?? 'No Brand' }}</td>
@@ -202,28 +210,19 @@
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <td colspan="5" class="text-end"><strong>Total</strong></td>
+                                    <td colspan="9" class="text-end"><strong>Total</strong></td>
                                     <td><strong>{{ $stock }} Pcs</strong></td>
+                                    <td colspan="4"></td>
                                     <td><strong>{{ $total }} Tk</strong></td>
-                                </tr>
-                                <tr>
-
-                                    <td colspan="8" class="text-center">
-                                        @php
-                                            $product_sizes = App\Models\Productsize::get();
-                                        @endphp
-                                        <!-- <h5><strong>Total Stock = {{ $product_sizes->sum('total_stock') }} Tk</strong></h5>
-                                        <h5><strong>Total Current Stock = {{ $product_sizes->sum('stock') }} Pcs</strong></h5> -->
-                                        <!-- <h5><strong>Total Sale Price = {{ $product_sizes->sum('SalePrice') * $product_sizes->sum('stock') }} Tk</strong></h5> -->
-                                    </td>
-                                    {{-- <td colspan="8" class="text-center">
-                                        <h5><strong>Total Purchase = {{ $total_purchase }}</strong></h5>
-                                        <h5><strong>Total Stock = {{ $total_stock }} Pcs</strong></h5>
-                                        <h5><strong>Total Price = {{ $total_price }} Tk</strong></h5>
-                                    </td> --}}
+                                    <td></td>
                                 </tr>
                             </tfoot>
                         </table>
+                    </div>
+                    <div class="row mt-3 no-print">
+                        <div class="col-sm-12 d-flex justify-content-end">
+                            {{ $sizes->links('pagination::bootstrap-4') }}
+                        </div>
                     </div>
                 </div> <!-- end card body-->
             </div> <!-- end card -->
@@ -246,16 +245,22 @@
     function printFunction() {
         window.print();
     }
-</script>
-<script>
+
     $(document).ready(function() {
+        $('#quick-show-select').on('change', function() {
+            var selectedVal = $(this).val();
+            $('#show-hidden-input').val(selectedVal);
+            $('#report-filter-form').submit();
+        });
+
         $('#export-excel-button').on('click', function() {
             var contentToExport = $('#content-to-export').html();
             var tempElement = $('<div>');
             tempElement.html(contentToExport);
             tempElement.find('.table').table2excel({
                 exclude: ".no-export",
-                name: "Order Report"
+                name: "Stock Report",
+                filename: "Stock-Report"
             });
         });
     });
