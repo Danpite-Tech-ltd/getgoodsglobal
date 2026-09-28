@@ -685,8 +685,21 @@ class OrderController extends Controller
         $total_sales = $orders->sum(\DB::raw('sale_price * qty'));
         $discounts = Order::sum('discount');
 
+        // Dynamic per-page/show entries (20, 50, 100, all)
+        $show = $request->show ?? 100;
+        if ($show === 'all') {
+            if ($request->filter == 'sale') {
+                $totalCount = (clone $orders)->get()->count();
+            } else {
+                $totalCount = (clone $orders)->count();
+            }
+            $per_page = $totalCount > 0 ? $totalCount : 100;
+        } else {
+            $per_page = (int)$show > 0 ? (int)$show : 100;
+        }
+
         // Now apply pagination (this won't affect the totals as they are calculated before pagination)
-        $orders = $orders->paginate(100)->appends($request->query());
+        $orders = $orders->paginate($per_page)->appends($request->query());
 
         // Return the view with the necessary data
         return view('backEnd.reports.order', compact('orders', 'users', 'totalPurchase', 'total_item', 'total_sales', 'discounts'));

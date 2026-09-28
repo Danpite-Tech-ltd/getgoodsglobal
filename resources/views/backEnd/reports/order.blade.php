@@ -51,7 +51,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <form class="no-print">
+                    <form class="no-print" id="report-filter-form">
                         <div class="row">
                             <div class="col-sm-3">
                                 <div class="form-group">
@@ -119,6 +119,7 @@
                                 </div>
                             </div>
                             <!--col-sm-3-->
+                            <input type="hidden" name="show" id="show-hidden-input" value="{{ request()->get('show', 100) }}">
                             <div class="col-sm-12">
                                 <div class="mb-3 form-group">
                                     <button class="btn btn-primary">Submit</button>
@@ -128,13 +129,22 @@
                             <!-- col end -->
                         </div>
                     </form>
-                    <div class="mb-3 row">
-                        <div class="col-sm-6 no-print">
-                            {{ $orders->links('pagination::bootstrap-4') }}
+                    <div class="row mb-3 align-items-center no-print">
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-center flex-wrap">
+                                <label class="me-2 mb-0 fw-bold">Show:</label>
+                                <select class="form-select form-control d-inline-block" style="width: auto; max-width: 120px;" id="quick-show-select">
+                                    <option value="20" {{ request()->get('show') == '20' ? 'selected' : '' }}>20</option>
+                                    <option value="50" {{ request()->get('show') == '50' ? 'selected' : '' }}>50</option>
+                                    <option value="100" {{ (request()->get('show') == '100' || !request()->has('show')) ? 'selected' : '' }}>100</option>
+                                    <option value="all" {{ request()->get('show') == 'all' ? 'selected' : '' }}>All</option>
+                                </select>
+                                <span class="text-muted ms-2">entries (Showing {{ $orders->firstItem() ?? 0 }} to {{ $orders->lastItem() ?? 0 }} of {{ $orders->total() }})</span>
+                            </div>
                         </div>
                         <div class="col-sm-6">
                             <div class="export-print text-end">
-                                <button onclick="printFunction()"class="no-print btn btn-success"><i
+                                <button onclick="printFunction()" class="no-print btn btn-success"><i
                                         class="fa fa-print"></i> Print</button>
                                 <button id="export-excel-button" class="no-print btn btn-info"><i
                                         class="fas fa-file-export"></i> Export</button>
@@ -202,7 +212,7 @@
                                     @foreach ($orders as $key => $value)
 
                                         <tr>
-                                            <td>{{ $value->order ? $value->order->invoice_id : $key + 1 }}</td>
+                                            <td>{{ $value->order ? $value->order->invoice_id : (($orders->firstItem() ?? 1) + $key) }}</td>
                                             <!--<td>Online</td>-->
                                             <td>Order Delivered</td>
                                             @php
@@ -286,6 +296,11 @@
                             </table>
                         </div>
                     </div>
+                    <div class="row mt-3 no-print">
+                        <div class="col-sm-12 d-flex justify-content-end">
+                            {{ $orders->links('pagination::bootstrap-4') }}
+                        </div>
+                    </div>
                 </div> <!-- end card body-->
             </div> <!-- end card -->
         </div><!-- end col-->
@@ -311,13 +326,20 @@
 </script>
 <script>
     $(document).ready(function() {
+        $('#quick-show-select').on('change', function() {
+            var selectedVal = $(this).val();
+            $('#show-hidden-input').val(selectedVal);
+            $('#report-filter-form').submit();
+        });
+
         $('#export-excel-button').on('click', function() {
             var contentToExport = $('#content-to-export').html();
             var tempElement = $('<div>');
             tempElement.html(contentToExport);
             tempElement.find('.table').table2excel({
                 exclude: ".no-export",
-                name: "Order Report"
+                name: "Order Report",
+                filename: "Order-Report"
             });
         });
     });
