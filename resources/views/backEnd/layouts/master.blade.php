@@ -508,14 +508,14 @@
                                         <a href="{{ route('shape.index') }}"><i data-feather="file-plus"></i>
                                             Shape</a>
                                     </li>
-                                    {{-- <li>
-                                        <a href="{{ route('rasin.index') }}"><i data-feather="file-plus"></i>
-                                            Rasin Ration</a>
-                                    </li>
-                                    <li>
+                                     <li>
+                                        <a href="{{ route('resin.index') }}"><i data-feather="file-plus"></i>
+                                            Resin Ratio</a>
+                                    </li> 
+                                    {{--<li>
                                         <a href="{{ route('mesurement.index') }}"><i data-feather="file-plus"></i>
                                             Mesurement Unit</a>
-                                    </li> --}}
+                                    </li>  --}}
                                 </ul>
                             </div>
                         </li>

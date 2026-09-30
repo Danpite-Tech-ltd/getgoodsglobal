@@ -8,4 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 class ResinRatio extends Model
 {
     use HasFactory;
+
+    protected $fillable = ['resin', 'hardener', 'resin_density', 'hardener_density', 'wastage', 'status'];
 }

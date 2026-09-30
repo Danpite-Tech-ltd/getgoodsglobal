@@ -41,6 +41,7 @@ use App\Http\Controllers\Admin\ExpenseController;
 use App\Http\Controllers\Admin\MapController;
 use App\Http\Controllers\Admin\BankController;
 use App\Http\Controllers\Admin\ShapeController;
+use App\Http\Controllers\Admin\ResinController;
 use App\Http\Controllers\BulkqtyController;
 use App\Http\Controllers\CouponController;
 use App\Http\Controllers\WishlistController;
@@ -187,6 +188,7 @@ Route::group(['namespace' => 'Admin', 'middleware' => ['auth', 'lock', 'check_re
 
     // calculator
     Route::resource('shape', '\\' . ShapeController::class);
+    Route::resource('resin', '\\' . ResinController::class);
 
 
     Route::get('product/color', [ProductController::class, 'variant']);
