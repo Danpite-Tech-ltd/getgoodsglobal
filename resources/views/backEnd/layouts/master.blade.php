@@ -495,6 +495,30 @@
                             </div>
                         </li>
                         @endcan
+
+                        <li>
+                            <a href="#sidebar-calculator" data-bs-toggle="collapse">
+                                <i data-feather="tag"></i>
+                                <span> Resin Calculator </span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <div class="collapse" id="sidebar-calculator">
+                                <ul class="nav-second-level">
+                                    <li>
+                                        <a href="{{ route('shape.index') }}"><i data-feather="file-plus"></i>
+                                            Shape</a>
+                                    </li>
+                                    {{-- <li>
+                                        <a href="{{ route('rasin.index') }}"><i data-feather="file-plus"></i>
+                                            Rasin Ration</a>
+                                    </li>
+                                    <li>
+                                        <a href="{{ route('mesurement.index') }}"><i data-feather="file-plus"></i>
+                                            Mesurement Unit</a>
+                                    </li> --}}
+                                </ul>
+                            </div>
+                        </li>
                         <!-- nav items -->
                          @canany(['Order-Status','Shipping-Charge','Create-Page','Contact', 'Social-Media','Bank','General-Setting'])
                         <li>

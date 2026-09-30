@@ -40,6 +40,7 @@ use App\Http\Controllers\Admin\DepositController;
 use App\Http\Controllers\Admin\ExpenseController;
 use App\Http\Controllers\Admin\MapController;
 use App\Http\Controllers\Admin\BankController;
+use App\Http\Controllers\Admin\ShapeController;
 use App\Http\Controllers\BulkqtyController;
 use App\Http\Controllers\CouponController;
 use App\Http\Controllers\WishlistController;
@@ -183,6 +184,11 @@ Route::get('/ajax-product-childcategory', [ProductController::class, 'getChildca
 
 // auth route
 Route::group(['namespace' => 'Admin', 'middleware' => ['auth', 'lock', 'check_refer'], 'prefix' => 'admin'], function () {
+
+    // calculator
+    Route::resource('shape', '\\' . ShapeController::class);
+
+
     Route::get('product/color', [ProductController::class, 'variant']);
     Route::get('product/size-weight', [ProductController::class, 'sizeweight']);
 
