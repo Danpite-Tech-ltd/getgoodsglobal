@@ -34,6 +34,7 @@
                             <tr>
                                 <th>SL</th>
                                 <th>Title</th>
+                                <th>Input List</th>
                                 <th>Status</th>
                                 <th>Action</th>
                             </tr>
@@ -44,6 +45,22 @@
                                 <tr id="row-{{ $value->id }}">
                                     <td>{{ $loop->iteration }}</td>
                                     <td>{{ $value->title }}</td>
+                                    <td>
+                                        @php
+                                            $inputs = is_array($value->input_list) ? $value->input_list : json_decode($value->input_list, true);
+                                        @endphp
+                                        @if (!empty($inputs) && is_array($inputs))
+                                            <div class="d-flex flex-wrap gap-1">
+                                                @foreach ($inputs as $input)
+                                                    <span class="badge bg-light text-dark border">
+                                                        {{ $input['title'] ?? '' }}: <strong class="text-primary">{{ $input['parameter'] ?? '' }}</strong>
+                                                    </span>
+                                                @endforeach
+                                            </div>
+                                        @else
+                                            <span class="text-muted">N/A</span>
+                                        @endif
+                                    </td>
                                     <td>
                                         @if ($value->status == 1)
                                             <span class="badge bg-soft-success text-success">Active</span>
@@ -73,7 +90,7 @@
 
 <!-- Shape Add/Edit Modal -->
 <div class="modal fade" id="shapeModal" tabindex="-1" aria-labelledby="shapeModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="shapeModalLabel">Add Shape</h5>
@@ -89,6 +106,26 @@
                         <label for="shape_title" class="form-label">Title <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="shape_title" name="title" placeholder="Enter shape title" required>
                         <div class="invalid-feedback" id="title-error"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label mb-0 fw-semibold">Input List <span class="text-danger">*</span></label>
+                            <button type="button" class="btn btn-xs btn-success waves-effect waves-light" id="addInputRowBtn">
+                                <i class="fe-plus"></i> Add Item
+                            </button>
+                        </div>
+                        <div class="p-2 border rounded bg-light">
+                            <div class="d-flex gap-2 mb-1 px-1 text-muted small fw-semibold">
+                                <div class="flex-grow-1">Title <span class="text-danger">*</span></div>
+                                <div class="flex-grow-1">Parameter <span class="text-danger">*</span></div>
+                                <div style="width: 38px;" class="text-center">Action</div>
+                            </div>
+                            <div id="inputListContainer">
+                                <!-- Dynamic rows go here -->
+                            </div>
+                        </div>
+                        <div class="text-danger small mt-1" id="input_list-error" style="display: none;"></div>
                     </div>
 
                     <div class="mb-3">
@@ -131,11 +168,61 @@
 
 <script>
     $(document).ready(function() {
+        var rowIndex = 0;
+
+        function updateRemoveButtons() {
+            var rows = $('#inputListContainer .input-item-row');
+            if (rows.length <= 1) {
+                rows.find('.remove-input-row-btn').prop('disabled', true).addClass('disabled');
+            } else {
+                rows.find('.remove-input-row-btn').prop('disabled', false).removeClass('disabled');
+            }
+        }
+
+        function addInputRow(title = '', parameter = '') {
+            rowIndex++;
+            var safeTitle = (title || '').toString().replace(/"/g, '&quot;');
+            var safeParam = (parameter || '').toString().replace(/"/g, '&quot;');
+            var rowHtml = `
+                <div class="d-flex align-items-center gap-2 mb-2 input-item-row">
+                    <div class="flex-grow-1">
+                        <input type="text" class="form-control input-item-title" name="input_list[${rowIndex}][title]" value="${safeTitle}" placeholder="e.g. Length" required>
+                    </div>
+                    <div class="flex-grow-1">
+                        <input type="text" class="form-control input-item-param" name="input_list[${rowIndex}][parameter]" value="${safeParam}" placeholder="e.g. l" required>
+                    </div>
+                    <div style="width: 38px;" class="text-center">
+                        <button type="button" class="btn btn-outline-danger btn-sm remove-input-row-btn" title="Remove Item">
+                            <i class="fe-trash-2"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            $('#inputListContainer').append(rowHtml);
+            updateRemoveButtons();
+        }
+
+        $('#addInputRowBtn').click(function() {
+            addInputRow('', '');
+        });
+
+        $(document).on('click', '.remove-input-row-btn', function() {
+            var rows = $('#inputListContainer .input-item-row');
+            if (rows.length <= 1) {
+                toastr.warning('At least one input field is required.', 'Warning');
+                return;
+            }
+            $(this).closest('.input-item-row').remove();
+            updateRemoveButtons();
+        });
+
         function resetFormErrors() {
             $('#shape_title').removeClass('is-invalid');
             $('#shape_status').removeClass('is-invalid');
+            $('.input-item-title, .input-item-param').removeClass('is-invalid');
             $('#title-error').text('').hide();
             $('#status-error').text('').hide();
+            $('#input_list-error').text('').hide();
         }
 
         // Open Modal for Add
@@ -147,6 +234,11 @@
             $('#shape_status').val('1');
             $('#shapeModalLabel').text('Add Shape');
             $('#submitBtn').text('Save');
+
+            $('#inputListContainer').empty();
+            rowIndex = 0;
+            addInputRow('', '');
+
             $('#shapeModal').modal('show');
         });
 
@@ -171,6 +263,27 @@
                         $('#shape_status').val(response.data.status);
                         $('#shapeModalLabel').text('Edit Shape');
                         $('#submitBtn').text('Update');
+
+                        $('#inputListContainer').empty();
+                        rowIndex = 0;
+
+                        var list = response.data.input_list;
+                        if (typeof list === 'string') {
+                            try {
+                                list = JSON.parse(list);
+                            } catch(e) {
+                                list = [];
+                            }
+                        }
+
+                        if (Array.isArray(list) && list.length > 0) {
+                            list.forEach(function(item) {
+                                addInputRow(item.title || '', item.parameter || '');
+                            });
+                        } else {
+                            addInputRow('', '');
+                        }
+
                         $('#shapeModal').modal('show');
                     }
                 },
@@ -184,6 +297,33 @@
         $('#shapeForm').on('submit', function(e) {
             e.preventDefault();
             resetFormErrors();
+
+            var rows = $('#inputListContainer .input-item-row');
+            if (rows.length === 0) {
+                $('#input_list-error').text('At least one input item is required.').show();
+                toastr.error('At least one input item is required.', 'Validation Error');
+                return;
+            }
+
+            var hasEmpty = false;
+            rows.each(function() {
+                var title = $(this).find('.input-item-title').val().trim();
+                var param = $(this).find('.input-item-param').val().trim();
+                if (!title) {
+                    $(this).find('.input-item-title').addClass('is-invalid');
+                    hasEmpty = true;
+                }
+                if (!param) {
+                    $(this).find('.input-item-param').addClass('is-invalid');
+                    hasEmpty = true;
+                }
+            });
+
+            if (hasEmpty) {
+                $('#input_list-error').text('All title and parameter fields are required.').show();
+                toastr.error('Please fill in both title and parameter for all input items.', 'Validation Error');
+                return;
+            }
 
             var shapeId = $('#shape_id').val();
             var url = shapeId ? "{{ url('admin/shape') }}/" + shapeId : "{{ route('shape.store') }}";
@@ -220,6 +360,14 @@
                             $('#shape_status').addClass('is-invalid');
                             $('#status-error').text(errors.status[0]).show();
                         }
+                        if (errors.input_list) {
+                            $('#input_list-error').text(errors.input_list[0]).show();
+                        }
+                        $.each(errors, function(key, msgs) {
+                            if (key.indexOf('input_list.') === 0) {
+                                $('#input_list-error').text(msgs[0]).show();
+                            }
+                        });
                         toastr.error('Please check validation errors.', 'Validation Error');
                     } else {
                         toastr.error('Something went wrong, please try again.', 'Error');

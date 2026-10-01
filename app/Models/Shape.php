@@ -9,5 +9,9 @@ class Shape extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['title', 'status'];
+    protected $fillable = ['title', 'input_list', 'status'];
+
+    protected $casts = [
+        'input_list' => 'array',
+    ];
 }

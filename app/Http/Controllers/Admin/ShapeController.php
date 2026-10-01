@@ -26,10 +26,31 @@ class ShapeController extends Controller
         $request->validate([
             'title' => 'required|string|max:255',
             'status' => 'required|in:0,1',
+            'input_list' => 'required|array|min:1',
+            'input_list.*.title' => 'required|string|max:255',
+            'input_list.*.parameter' => 'required|string|max:255',
+        ], [
+            'input_list.required' => 'At least one input item is required.',
+            'input_list.min' => 'At least one input item is required.',
+            'input_list.*.title.required' => 'Each input item must have a title.',
+            'input_list.*.parameter.required' => 'Each input item must have a parameter.',
         ]);
+
+        $inputList = [];
+        if (is_array($request->input_list)) {
+            foreach ($request->input_list as $item) {
+                if (isset($item['title']) && isset($item['parameter'])) {
+                    $inputList[] = [
+                        'title' => trim($item['title']),
+                        'parameter' => trim($item['parameter']),
+                    ];
+                }
+            }
+        }
 
         $shape = Shape::create([
             'title' => $request->title,
+            'input_list' => $inputList,
             'status' => $request->status,
         ]);
 
@@ -66,11 +87,32 @@ class ShapeController extends Controller
         $request->validate([
             'title' => 'required|string|max:255',
             'status' => 'required|in:0,1',
+            'input_list' => 'required|array|min:1',
+            'input_list.*.title' => 'required|string|max:255',
+            'input_list.*.parameter' => 'required|string|max:255',
+        ], [
+            'input_list.required' => 'At least one input item is required.',
+            'input_list.min' => 'At least one input item is required.',
+            'input_list.*.title.required' => 'Each input item must have a title.',
+            'input_list.*.parameter.required' => 'Each input item must have a parameter.',
         ]);
+
+        $inputList = [];
+        if (is_array($request->input_list)) {
+            foreach ($request->input_list as $item) {
+                if (isset($item['title']) && isset($item['parameter'])) {
+                    $inputList[] = [
+                        'title' => trim($item['title']),
+                        'parameter' => trim($item['parameter']),
+                    ];
+                }
+            }
+        }
 
         $shape = Shape::findOrFail($id);
         $shape->update([
             'title' => $request->title,
+            'input_list' => $inputList,
             'status' => $request->status,
         ]);
 
