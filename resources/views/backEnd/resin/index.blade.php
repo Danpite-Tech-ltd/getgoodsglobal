@@ -38,7 +38,7 @@
                                 <th>Hardener</th>
                                 <th>Resin Density</th>
                                 <th>Hardener Density</th>
-                                <th>Wastage</th>
+                                <th>Wastage %</th>
                                 <th>Status</th>
                                 <th>Action</th>
                             </tr>
@@ -134,9 +134,9 @@
 
                         <!-- Wastage -->
                         <div class="col-md-6 mb-3">
-                            <label for="wastage_field" class="form-label">Wastage <span class="text-danger">*</span></label>
+                            <label for="wastage_field" class="form-label">Wastage % <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="wastage_field" name="wastage"
-                                placeholder="e.g. 5%" required>
+                                placeholder="e.g. 10" required>
                             <div class="invalid-feedback" id="wastage-error"></div>
                         </div>
 

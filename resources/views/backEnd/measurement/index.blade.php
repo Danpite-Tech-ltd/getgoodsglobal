@@ -35,7 +35,7 @@
                             <tr>
                                 <th>SL</th>
                                 <th>Title</th>
-                                <th>Value</th>
+                                <th>Value To CM</th>
                                 <th>Status</th>
                                 <th>Action</th>
                             </tr>
@@ -103,9 +103,9 @@
 
                     <!-- Value -->
                     <div class="mb-3">
-                        <label for="unit_value" class="form-label">Value <span class="text-danger">*</span></label>
+                        <label for="unit_value" class="form-label">Value To CM <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="unit_value" name="value"
-                            placeholder="e.g. kg" required>
+                            placeholder="e.g. 1000" required>
                         <div class="invalid-feedback" id="value-error"></div>
                     </div>
 
