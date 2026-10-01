@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\BuyController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\ResinCalculatorController;
 
 use App\Http\Controllers\Api\WishlistController;
 
@@ -46,7 +47,7 @@ Route::middleware(['auth:sanctum','api'])->name('api.')->group(function () {
     Route::get('/delivery', [FrontendController::class, 'delivery']);
     Route::get('/order-status', [FrontendController::class, 'orderStatus']);
     Route::get('/invoice/{invoice_id}', [FrontendController::class, 'invoice']);
-   
+
 
     //Wishlist
     Route::get('/wishlists', [WishlistController::class, 'wishlist'])->name('user.wishlist');
@@ -62,7 +63,7 @@ Route::middleware(['auth:sanctum','api'])->name('api.')->group(function () {
     Route::post('/cart-remove/{id}', [CartController::class, 'cartRemove']);
     Route::post('/cart-details-update/{id}', [CartController::class, 'cartDetailsUpdate']);
     Route::post('/cart-details-delete/{id}', [CartController::class, 'cartDetailsDelete']);
-    
+
     // buy
     Route::post('/product-buy-now', [BuyController::class, 'productAddToBuy'])->name('product-buy-now');
     Route::get('/buy-products', [BuyController::class, 'buyProducts'])->name('buy-products');
@@ -72,15 +73,15 @@ Route::middleware(['auth:sanctum','api'])->name('api.')->group(function () {
 
     //Order place
     Route::post('/order-place', [OrderController::class, 'orderPlace'])->name('user.place-order');
-    
-    Route::post('/buy-order-place', [OrderController::class, 'buyorderPlace'])->name('user.buy-place-order'); 
+
+    Route::post('/buy-order-place', [OrderController::class, 'buyorderPlace'])->name('user.buy-place-order');
 
     // ticket
     Route::post('/ticket-store',[TicketController::class,'ticket_store'])->name('ticket.store');
     Route::get('/ticket-list',[TicketController::class,'ticket_list'])->name('ticket.list');
     Route::get('/ticket-replay-list/{ticket_id}',[TicketController::class,'ticket_reply_list'])->name('ticket.replay.list');
     Route::post('/ticket-replay-submit',[TicketController::class,'ticket_reply_submit'])->name('ticket.replay.submit');
-    
+
     // order ticket
     Route::post('/order-ticket-store',[TicketController::class,'orderticket_store'])->name('orderticket.store');
 
@@ -94,6 +95,11 @@ Route::middleware(['auth:sanctum','api'])->name('api.')->group(function () {
 });
 
 Route::name('api.')->group(function () {
+
+    // Resin Calculator
+    Route::get('shape', [ResinCalculatorController::class, 'shape']);
+    Route::get('resin-ratio', [ResinCalculatorController::class, 'resin']);
+    Route::get('measurement-unit', [ResinCalculatorController::class, 'mesurement']);
 
     // website info
     Route::get('/settings', [SettingController::class, 'settings'])->name('settings');
@@ -119,7 +125,7 @@ Route::name('api.')->group(function () {
 
     // category
     Route::get('/categories', [CategoryController::class, 'categories'])->name('categories');
-    
+
     Route::get('/menu-categories', [CategoryController::class, 'menuCategories'])->name('menuCategories');
 
     // subcategory
@@ -153,7 +159,7 @@ Route::name('api.')->group(function () {
 
     // order track
     Route::get('/order-track/{invoice_id}', [OrderController::class, 'orderTrack'])->name('order-track');
-    
+
     // district and thana
     Route::get('/district', [FrontendController::class, 'district']);
     Route::get('/thana', [FrontendController::class, 'thana']);
