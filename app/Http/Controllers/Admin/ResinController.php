@@ -24,6 +24,7 @@ class ResinController extends Controller
     public function store(Request $request)
     {
         $request->validate([
+            'title'            => 'nullable|string|max:255',
             'resin'            => 'required|string|max:255',
             'hardener'         => 'required|string|max:255',
             'resin_density'    => 'required|string|max:255',
@@ -33,7 +34,7 @@ class ResinController extends Controller
         ]);
 
         $resin = ResinRatio::create($request->only([
-            'resin', 'hardener', 'resin_density', 'hardener_density', 'wastage', 'status'
+            'title', 'resin', 'hardener', 'resin_density', 'hardener_density', 'wastage', 'status'
         ]));
 
         if ($request->ajax()) {
@@ -67,6 +68,7 @@ class ResinController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate([
+            'title'            => 'nullable|string|max:255',
             'resin'            => 'required|string|max:255',
             'hardener'         => 'required|string|max:255',
             'resin_density'    => 'required|string|max:255',
@@ -77,7 +79,7 @@ class ResinController extends Controller
 
         $resin = ResinRatio::findOrFail($id);
         $resin->update($request->only([
-            'resin', 'hardener', 'resin_density', 'hardener_density', 'wastage', 'status'
+            'title', 'resin', 'hardener', 'resin_density', 'hardener_density', 'wastage', 'status'
         ]));
 
         if ($request->ajax()) {

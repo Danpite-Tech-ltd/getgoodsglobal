@@ -34,6 +34,7 @@
                         <thead>
                             <tr>
                                 <th>SL</th>
+                                <th>Title</th>
                                 <th>Resin</th>
                                 <th>Hardener</th>
                                 <th>Resin Density</th>
@@ -48,6 +49,7 @@
                             @foreach ($data as $value)
                                 <tr id="resin-row-{{ $value->id }}">
                                     <td>{{ $loop->iteration }}</td>
+                                    <td>{{ $value->title ?? '-' }}</td>
                                     <td>{{ $value->resin }}</td>
                                     <td>{{ $value->hardener }}</td>
                                     <td>{{ $value->resin_density }}</td>
@@ -100,6 +102,14 @@
 
                 <div class="modal-body">
                     <div class="row">
+                        <!-- Title -->
+                        <div class="col-md-12 mb-3">
+                            <label for="resin_title_field" class="form-label">Title</label>
+                            <input type="text" class="form-control" id="resin_title_field" name="title"
+                                placeholder="e.g. Epoxy 2:1">
+                            <div class="invalid-feedback" id="title-error"></div>
+                        </div>
+
                         <!-- Resin -->
                         <div class="col-md-6 mb-3">
                             <label for="resin_field" class="form-label">Resin <span class="text-danger">*</span></label>
@@ -188,9 +198,9 @@
 
         // ---- Helper: reset validation errors ----
         function resetErrors() {
-            $('#resin_field, #hardener_field, #resin_density_field, #hardener_density_field, #wastage_field, #resin_status')
+            $('#resin_title_field, #resin_field, #hardener_field, #resin_density_field, #hardener_density_field, #wastage_field, #resin_status')
                 .removeClass('is-invalid');
-            $('#resin-error, #hardener-error, #resin_density-error, #hardener_density-error, #wastage-error, #status-error')
+            $('#title-error, #resin-error, #hardener-error, #resin_density-error, #hardener_density-error, #wastage-error, #status-error')
                 .text('').hide();
         }
 
@@ -201,6 +211,7 @@
             $('#resin_id').val('');
             $('#resin_method').val('POST');
             $('#resin_status').val('1');
+            $('#resin_title_field').val('');
             $('#resinModalLabel').text('Add Resin Ratio');
             $('#resinSubmitBtn').text('Save');
             $('#resinModal').modal('show');
@@ -220,6 +231,7 @@
                         var d = response.data;
                         $('#resin_id').val(d.id);
                         $('#resin_method').val('PUT');
+                        $('#resin_title_field').val(d.title || '');
                         $('#resin_field').val(d.resin);
                         $('#hardener_field').val(d.hardener);
                         $('#resin_density_field').val(d.resin_density);
@@ -267,6 +279,7 @@
                     if (xhr.status === 422) {
                         var errors = xhr.responseJSON.errors;
                         var fieldMap = {
+                            title:            'resin_title_field',
                             resin:            'resin_field',
                             hardener:         'hardener_field',
                             resin_density:    'resin_density_field',

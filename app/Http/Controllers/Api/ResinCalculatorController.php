@@ -109,10 +109,23 @@ class ResinCalculatorController extends Controller
             }
         }
 
+        $resin    = $total_volume * ($ratio->resin    / ($ratio->resin + $ratio->hardener)) * (1 + $ratio->wastage / 100);
+        $hardener = $total_volume * ($ratio->hardener / ($ratio->resin + $ratio->hardener)) * (1 + $ratio->wastage / 100);
+
+        
+        $resin = round($resin, 3);
+        $hardener = round($hardener, 3);
+
+        $cost = $data['price'] / 1000 * ($resin + $hardener);
+        $cost = round($cost, 2);
+
         return response()->json([
             'status' => true,
             'message' => 'Calculation Result',
             'data' => [
+                'resin' => $resin,
+                'hardener' => $hardener,
+                'cost' => $cost,
                 'total_volume' => $total_volume,
                 'shape' => $shape,
                 'resin_ratio' => $ratio,

@@ -9,5 +9,5 @@ class ResinRatio extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['resin', 'hardener', 'resin_density', 'hardener_density', 'wastage', 'status'];
+    protected $fillable = ['title', 'resin', 'hardener', 'resin_density', 'hardener_density', 'wastage', 'status'];
 }
