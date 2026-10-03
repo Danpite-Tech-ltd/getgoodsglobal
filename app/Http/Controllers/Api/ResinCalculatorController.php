@@ -79,7 +79,40 @@ class ResinCalculatorController extends Controller
                 $total_volume *= $value;
             }
         } elseif ($shape->type == 'circle') {
-            
+            $radius = 0;
+            $other_multiplier = 1;
+
+            foreach ($shape->input_list as $field) {
+                $value = $request->input('inputs.' . $field['parameter']);
+
+                if (empty($field['mm'])) {
+                    $value *= $unit->value;
+                } else {
+                    $value *= 0.1;
+                }
+
+                if (!empty($field['diameter'])) {
+                    $radius = $value / 2;
+                } else {
+                    $other_multiplier *= $value;
+                }
+            }
+
+            $total_volume = pi() * $radius * $radius * $other_multiplier;
+        } elseif($shape->type == 'custom'){
+            $total_volume = 1;
+
+            foreach ($shape->input_list as $field) {
+                $value = $request->input('inputs.' . $field['parameter']);
+
+                if (empty($field['mm'])) {
+                    $value *= $unit->value;
+                } else {
+                    $value *= 0.1;
+                }
+
+                $total_volume *= $value;
+            }
         }
 
         return response()->json([

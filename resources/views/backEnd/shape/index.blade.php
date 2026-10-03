@@ -59,6 +59,11 @@
                                                         <span class="badge {{ !empty($input['mm']) ? 'bg-soft-success text-success' : 'bg-soft-secondary text-secondary' }} ms-1">
                                                             mm: {{ !empty($input['mm']) ? 'true' : 'false' }}
                                                         </span>
+                                                        @if ($value->type === 'circle' || isset($input['diameter']))
+                                                            <span class="badge {{ !empty($input['diameter']) ? 'bg-soft-info text-info' : 'bg-soft-secondary text-secondary' }} ms-1">
+                                                                diameter: {{ !empty($input['diameter']) ? 'true' : 'false' }}
+                                                            </span>
+                                                        @endif
                                                     </span>
                                                 @endforeach
                                             </div>
@@ -134,7 +139,8 @@
                             <div class="d-flex gap-2 mb-1 px-1 text-muted small fw-semibold">
                                 <div class="flex-grow-1">Title <span class="text-danger">*</span></div>
                                 <div class="flex-grow-1">Parameter <span class="text-danger">*</span></div>
-                                <div style="width: 120px;">MM <span class="text-danger">*</span></div>
+                                <div style="width: 105px;">MM <span class="text-danger">*</span></div>
+                                <div style="width: 110px; display: none;" class="diameter-col">Diameter <span class="text-danger">*</span></div>
                                 <div style="width: 38px;" class="text-center">Action</div>
                             </div>
                             <div id="inputListContainer">
@@ -195,11 +201,28 @@
             }
         }
 
-        function addInputRow(title = '', parameter = '', mm = 0) {
+        function toggleDiameterVisibility() {
+            var type = $('#shape_type').val();
+            if (type === 'circle') {
+                $('.diameter-col').show();
+            } else {
+                $('.diameter-col').hide();
+            }
+        }
+
+        $('#shape_type').on('change', function() {
+            toggleDiameterVisibility();
+        });
+
+        function addInputRow(title = '', parameter = '', mm = 0, diameter = 0) {
             rowIndex++;
             var safeTitle = (title || '').toString().replace(/"/g, '&quot;');
             var safeParam = (parameter || '').toString().replace(/"/g, '&quot;');
             var isMmTrue = (mm == 1 || mm === true || mm === '1' || mm === 'true');
+            var isDiameterTrue = (diameter == 1 || diameter === true || diameter === '1' || diameter === 'true');
+            var isCircle = ($('#shape_type').val() === 'circle');
+            var diameterStyle = isCircle ? '' : 'style="display: none;"';
+
             var rowHtml = `
                 <div class="d-flex align-items-center gap-2 mb-2 input-item-row">
                     <div class="flex-grow-1">
@@ -208,10 +231,16 @@
                     <div class="flex-grow-1">
                         <input type="text" class="form-control input-item-param" name="input_list[${rowIndex}][parameter]" value="${safeParam}" placeholder="e.g. l" required>
                     </div>
-                    <div style="width: 120px;">
+                    <div style="width: 105px;">
                         <select class="form-select input-item-mm" name="input_list[${rowIndex}][mm]">
                             <option value="1" ${isMmTrue ? 'selected' : ''}>true</option>
                             <option value="0" ${!isMmTrue ? 'selected' : ''}>false</option>
+                        </select>
+                    </div>
+                    <div style="width: 110px;" class="diameter-col" ${diameterStyle}>
+                        <select class="form-select input-item-diameter" name="input_list[${rowIndex}][diameter]">
+                            <option value="1" ${isDiameterTrue ? 'selected' : ''}>true</option>
+                            <option value="0" ${!isDiameterTrue ? 'selected' : ''}>false</option>
                         </select>
                     </div>
                     <div style="width: 38px;" class="text-center">
@@ -226,7 +255,7 @@
         }
 
         $('#addInputRowBtn').click(function() {
-            addInputRow('', '', 0);
+            addInputRow('', '', 0, 0);
         });
 
         $(document).on('click', '.remove-input-row-btn', function() {
@@ -263,7 +292,8 @@
 
             $('#inputListContainer').empty();
             rowIndex = 0;
-            addInputRow('', '', 0);
+            addInputRow('', '', 0, 0);
+            toggleDiameterVisibility();
 
             $('#shapeModal').modal('show');
         });
@@ -305,11 +335,17 @@
 
                         if (Array.isArray(list) && list.length > 0) {
                             list.forEach(function(item) {
-                                addInputRow(item.title || '', item.parameter || '', item.mm !== undefined ? item.mm : 0);
+                                addInputRow(
+                                    item.title || '',
+                                    item.parameter || '',
+                                    item.mm !== undefined ? item.mm : 0,
+                                    item.diameter !== undefined ? item.diameter : 0
+                                );
                             });
                         } else {
-                            addInputRow('', '', 0);
+                            addInputRow('', '', 0, 0);
                         }
+                        toggleDiameterVisibility();
 
                         $('#shapeModal').modal('show');
                     }

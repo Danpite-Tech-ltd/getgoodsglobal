@@ -31,6 +31,7 @@ class ShapeController extends Controller
             'input_list.*.title' => 'required|string|max:255',
             'input_list.*.parameter' => 'required|string|max:255',
             'input_list.*.mm' => 'nullable|in:0,1',
+            'input_list.*.diameter' => 'nullable|in:0,1',
         ], [
             'input_list.required' => 'At least one input item is required.',
             'input_list.min' => 'At least one input item is required.',
@@ -42,11 +43,15 @@ class ShapeController extends Controller
         if (is_array($request->input_list)) {
             foreach ($request->input_list as $item) {
                 if (isset($item['title']) && isset($item['parameter'])) {
-                    $inputList[] = [
+                    $row = [
                         'title' => trim($item['title']),
                         'parameter' => trim($item['parameter']),
                         'mm' => isset($item['mm']) && (int)$item['mm'] === 1 ? 1 : 0,
                     ];
+                    if ($request->type === 'circle') {
+                        $row['diameter'] = isset($item['diameter']) && (int)$item['diameter'] === 1 ? 1 : 0;
+                    }
+                    $inputList[] = $row;
                 }
             }
         }
@@ -96,6 +101,7 @@ class ShapeController extends Controller
             'input_list.*.title' => 'required|string|max:255',
             'input_list.*.parameter' => 'required|string|max:255',
             'input_list.*.mm' => 'nullable|in:0,1',
+            'input_list.*.diameter' => 'nullable|in:0,1',
         ], [
             'input_list.required' => 'At least one input item is required.',
             'input_list.min' => 'At least one input item is required.',
@@ -107,11 +113,15 @@ class ShapeController extends Controller
         if (is_array($request->input_list)) {
             foreach ($request->input_list as $item) {
                 if (isset($item['title']) && isset($item['parameter'])) {
-                    $inputList[] = [
+                    $row = [
                         'title' => trim($item['title']),
                         'parameter' => trim($item['parameter']),
                         'mm' => isset($item['mm']) && (int)$item['mm'] === 1 ? 1 : 0,
                     ];
+                    if ($request->type === 'circle') {
+                        $row['diameter'] = isset($item['diameter']) && (int)$item['diameter'] === 1 ? 1 : 0;
+                    }
+                    $inputList[] = $row;
                 }
             }
         }
