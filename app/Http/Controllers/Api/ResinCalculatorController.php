@@ -70,8 +70,16 @@ class ResinCalculatorController extends Controller
             foreach ($shape->input_list as $field) {
                 $value = $request->input('inputs.' . $field['parameter']);
 
+                if (empty($field['mm'])) {
+                    $value *= $unit->value;
+                } else {
+                    $value *= 0.1;
+                }
+
                 $total_volume *= $value;
             }
+        } elseif ($shape->type == 'circle') {
+            
         }
 
         return response()->json([
