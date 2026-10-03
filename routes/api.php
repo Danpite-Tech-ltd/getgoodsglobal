@@ -101,6 +101,8 @@ Route::name('api.')->group(function () {
     Route::get('resin-ratio', [ResinCalculatorController::class, 'resin']);
     Route::get('measurement-unit', [ResinCalculatorController::class, 'mesurement']);
 
+    Route::post('resin-calculator', [ResinCalculatorController::class, 'calculation']);
+
     // website info
     Route::get('/settings', [SettingController::class, 'settings'])->name('settings');
 

@@ -34,6 +34,7 @@
                             <tr>
                                 <th>SL</th>
                                 <th>Title</th>
+                                <th>Type</th>
                                 <th>Input List</th>
                                 <th>Status</th>
                                 <th>Action</th>
@@ -45,6 +46,7 @@
                                 <tr id="row-{{ $value->id }}">
                                     <td>{{ $loop->iteration }}</td>
                                     <td>{{ $value->title }}</td>
+                                    <td>{{ $value->type }}</td>
                                     <td>
                                         @php
                                             $inputs = is_array($value->input_list) ? $value->input_list : json_decode($value->input_list, true);
@@ -90,22 +92,32 @@
 
 <!-- Shape Add/Edit Modal -->
 <div class="modal fade" id="shapeModal" tabindex="-1" aria-labelledby="shapeModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="shapeModalLabel">Add Shape</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="shapeForm">
+            <form id="shapeForm" class="d-flex flex-column overflow-hidden">
                 @csrf
                 <input type="hidden" id="shape_id" name="shape_id">
                 <input type="hidden" id="_method" name="_method" value="POST">
 
-                <div class="modal-body">
+                <div class="modal-body overflow-auto">
                     <div class="mb-3">
                         <label for="shape_title" class="form-label">Title <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="shape_title" name="title" placeholder="Enter shape title" required>
                         <div class="invalid-feedback" id="title-error"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="shape_type" class="form-label">Type <span class="text-danger">*</span></label>
+                        <select class="form-select" id="shape_type" name="type" required>
+                            <option value="rectangle">Rectangle</option>
+                            <option value="circle">Circle</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                        <div class="invalid-feedback" id="type-error"></div>
                     </div>
 
                     <div class="mb-3">
@@ -138,7 +150,7 @@
                     </div>
                 </div>
 
-                <div class="modal-footer">
+                <div class="modal-footer flex-shrink-0">
                     <button type="button" class="btn btn-secondary waves-effect" data-bs-dismiss="modal">Close</button>
                     <button type="submit" class="btn btn-success waves-effect waves-light" id="submitBtn">Save</button>
                 </div>
@@ -218,9 +230,11 @@
 
         function resetFormErrors() {
             $('#shape_title').removeClass('is-invalid');
+            $('#shape_type').removeClass('is-invalid');
             $('#shape_status').removeClass('is-invalid');
             $('.input-item-title, .input-item-param').removeClass('is-invalid');
             $('#title-error').text('').hide();
+            $('#type-error').text('').hide();
             $('#status-error').text('').hide();
             $('#input_list-error').text('').hide();
         }
@@ -231,6 +245,7 @@
             $('#shapeForm')[0].reset();
             $('#shape_id').val('');
             $('#_method').val('POST');
+            $('#shape_type').val('rectangle');
             $('#shape_status').val('1');
             $('#shapeModalLabel').text('Add Shape');
             $('#submitBtn').text('Save');
@@ -260,6 +275,7 @@
                         $('#shape_id').val(response.data.id);
                         $('#_method').val('PUT');
                         $('#shape_title').val(response.data.title);
+                        $('#shape_type').val(response.data.type);
                         $('#shape_status').val(response.data.status);
                         $('#shapeModalLabel').text('Edit Shape');
                         $('#submitBtn').text('Update');
@@ -355,6 +371,10 @@
                         if (errors.title) {
                             $('#shape_title').addClass('is-invalid');
                             $('#title-error').text(errors.title[0]).show();
+                        }
+                        if (errors.type) {
+                            $('#shape_type').addClass('is-invalid');
+                            $('#type-error').text(errors.type[0]).show();
                         }
                         if (errors.status) {
                             $('#shape_status').addClass('is-invalid');

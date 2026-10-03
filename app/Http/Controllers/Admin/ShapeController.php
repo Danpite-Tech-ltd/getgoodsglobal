@@ -25,6 +25,7 @@ class ShapeController extends Controller
     {
         $request->validate([
             'title' => 'required|string|max:255',
+            'type' => 'required|in:rectangle,circle,custom',
             'status' => 'required|in:0,1',
             'input_list' => 'required|array|min:1',
             'input_list.*.title' => 'required|string|max:255',
@@ -50,6 +51,7 @@ class ShapeController extends Controller
 
         $shape = Shape::create([
             'title' => $request->title,
+            'type' => $request->type,
             'input_list' => $inputList,
             'status' => $request->status,
         ]);
@@ -86,6 +88,7 @@ class ShapeController extends Controller
     {
         $request->validate([
             'title' => 'required|string|max:255',
+            'type' => 'required|in:rectangle,circle,custom',
             'status' => 'required|in:0,1',
             'input_list' => 'required|array|min:1',
             'input_list.*.title' => 'required|string|max:255',
@@ -112,6 +115,7 @@ class ShapeController extends Controller
         $shape = Shape::findOrFail($id);
         $shape->update([
             'title' => $request->title,
+            'type' => $request->type,
             'input_list' => $inputList,
             'status' => $request->status,
         ]);
