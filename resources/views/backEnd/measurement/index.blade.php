@@ -36,6 +36,8 @@
                                 <th>SL</th>
                                 <th>Title</th>
                                 <th>Value To CM</th>
+                                <th>Custom</th>
+                                <th>Is ML</th>
                                 <th>Status</th>
                                 <th>Action</th>
                             </tr>
@@ -47,6 +49,24 @@
                                     <td>{{ $loop->iteration }}</td>
                                     <td>{{ $value->title }}</td>
                                     <td>{{ $value->value }}</td>
+                                    <td>
+                                        @if ($value->custom == 1)
+                                            <span class="badge bg-soft-primary text-primary">true</span>
+                                        @else
+                                            <span class="badge bg-soft-secondary text-secondary">false</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if ($value->custom == 1)
+                                            @if ($value->is_ml == 1)
+                                                <span class="badge bg-soft-success text-success">true</span>
+                                            @else
+                                                <span class="badge bg-soft-secondary text-secondary">false</span>
+                                            @endif
+                                        @else
+                                            <span class="text-muted">N/A</span>
+                                        @endif
+                                    </td>
                                     <td>
                                         @if ($value->status == 1)
                                             <span class="badge bg-soft-success text-success">Active</span>
@@ -109,6 +129,26 @@
                         <div class="invalid-feedback" id="value-error"></div>
                     </div>
 
+                    <!-- Custom -->
+                    <div class="mb-3">
+                        <label for="unit_custom" class="form-label">Custom <span class="text-danger">*</span></label>
+                        <select class="form-select" id="unit_custom" name="custom" required>
+                            <option value="0">false</option>
+                            <option value="1">true</option>
+                        </select>
+                        <div class="invalid-feedback" id="custom-error"></div>
+                    </div>
+
+                    <!-- Is ML (shown when Custom is 1) -->
+                    <div class="mb-3" id="is_ml_wrapper" style="display: none;">
+                        <label for="unit_is_ml" class="form-label">Is ML <span class="text-danger">*</span></label>
+                        <select class="form-select" id="unit_is_ml" name="is_ml">
+                            <option value="0">false</option>
+                            <option value="1">true</option>
+                        </select>
+                        <div class="invalid-feedback" id="is_ml-error"></div>
+                    </div>
+
                     <!-- Status -->
                     <div class="mb-3">
                         <label for="unit_status" class="form-label">Status <span class="text-danger">*</span></label>
@@ -156,9 +196,21 @@
 
         // ---- Helper: reset validation errors ----
         function resetErrors() {
-            $('#unit_title, #unit_value, #unit_status').removeClass('is-invalid');
-            $('#title-error, #value-error, #status-error').text('').hide();
+            $('#unit_title, #unit_value, #unit_status, #unit_custom, #unit_is_ml').removeClass('is-invalid');
+            $('#title-error, #value-error, #status-error, #custom-error, #is_ml-error').text('').hide();
         }
+
+        function toggleIsMl() {
+            if ($('#unit_custom').val() == '1') {
+                $('#is_ml_wrapper').show();
+            } else {
+                $('#is_ml_wrapper').hide();
+            }
+        }
+
+        $('#unit_custom').on('change', function () {
+            toggleIsMl();
+        });
 
         // ---- Open ADD modal ----
         $('#addUnitBtn').on('click', function () {
@@ -167,6 +219,9 @@
             $('#unit_id').val('');
             $('#unit_method').val('POST');
             $('#unit_status').val('1');
+            $('#unit_custom').val('0');
+            $('#unit_is_ml').val('0');
+            toggleIsMl();
             $('#unitModalLabel').text('Add Measurement Unit');
             $('#unitSubmitBtn').text('Save');
             $('#unitModal').modal('show');
@@ -189,6 +244,9 @@
                         $('#unit_title').val(d.title);
                         $('#unit_value').val(d.value);
                         $('#unit_status').val(d.status);
+                        $('#unit_custom').val(d.custom == '1' || d.custom == 1 ? '1' : '0');
+                        $('#unit_is_ml').val(d.is_ml == '1' || d.is_ml == 1 ? '1' : '0');
+                        toggleIsMl();
                         $('#unitModalLabel').text('Edit Measurement Unit');
                         $('#unitSubmitBtn').text('Update');
                         $('#unitModal').modal('show');
@@ -232,7 +290,9 @@
                         var fieldMap = {
                             title:  'unit_title',
                             value:  'unit_value',
-                            status: 'unit_status'
+                            status: 'unit_status',
+                            custom: 'unit_custom',
+                            is_ml:  'unit_is_ml'
                         };
                         $.each(errors, function (field, messages) {
                             if (fieldMap[field]) {

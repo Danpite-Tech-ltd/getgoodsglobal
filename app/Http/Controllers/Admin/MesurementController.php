@@ -27,9 +27,20 @@ class MesurementController extends Controller
             'title'  => 'required|string|max:255',
             'value'  => 'required|string|max:255',
             'status' => 'required|in:0,1',
+            'custom' => 'nullable|in:0,1',
+            'is_ml'  => 'nullable|in:0,1',
         ]);
 
-        $unit = MeasurementUnit::create($request->only(['title', 'value', 'status']));
+        $custom = $request->input('custom', 0);
+        $is_ml = ($custom == 1) ? $request->input('is_ml', 0) : null;
+
+        $unit = MeasurementUnit::create([
+            'title'  => $request->title,
+            'value'  => $request->value,
+            'status' => $request->status,
+            'custom' => $custom,
+            'is_ml'  => $is_ml,
+        ]);
 
         if ($request->ajax()) {
             return response()->json([
@@ -65,10 +76,21 @@ class MesurementController extends Controller
             'title'  => 'required|string|max:255',
             'value'  => 'required|string|max:255',
             'status' => 'required|in:0,1',
+            'custom' => 'nullable|in:0,1',
+            'is_ml'  => 'nullable|in:0,1',
         ]);
 
+        $custom = $request->input('custom', 0);
+        $is_ml = ($custom == 1) ? $request->input('is_ml', 0) : null;
+
         $unit = MeasurementUnit::findOrFail($id);
-        $unit->update($request->only(['title', 'value', 'status']));
+        $unit->update([
+            'title'  => $request->title,
+            'value'  => $request->value,
+            'status' => $request->status,
+            'custom' => $custom,
+            'is_ml'  => $is_ml,
+        ]);
 
         if ($request->ajax()) {
             return response()->json([
