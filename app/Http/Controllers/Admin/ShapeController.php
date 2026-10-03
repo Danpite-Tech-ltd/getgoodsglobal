@@ -30,6 +30,7 @@ class ShapeController extends Controller
             'input_list' => 'required|array|min:1',
             'input_list.*.title' => 'required|string|max:255',
             'input_list.*.parameter' => 'required|string|max:255',
+            'input_list.*.mm' => 'nullable|in:0,1',
         ], [
             'input_list.required' => 'At least one input item is required.',
             'input_list.min' => 'At least one input item is required.',
@@ -44,6 +45,7 @@ class ShapeController extends Controller
                     $inputList[] = [
                         'title' => trim($item['title']),
                         'parameter' => trim($item['parameter']),
+                        'mm' => isset($item['mm']) && (int)$item['mm'] === 1 ? 1 : 0,
                     ];
                 }
             }
@@ -93,6 +95,7 @@ class ShapeController extends Controller
             'input_list' => 'required|array|min:1',
             'input_list.*.title' => 'required|string|max:255',
             'input_list.*.parameter' => 'required|string|max:255',
+            'input_list.*.mm' => 'nullable|in:0,1',
         ], [
             'input_list.required' => 'At least one input item is required.',
             'input_list.min' => 'At least one input item is required.',
@@ -107,6 +110,7 @@ class ShapeController extends Controller
                     $inputList[] = [
                         'title' => trim($item['title']),
                         'parameter' => trim($item['parameter']),
+                        'mm' => isset($item['mm']) && (int)$item['mm'] === 1 ? 1 : 0,
                     ];
                 }
             }

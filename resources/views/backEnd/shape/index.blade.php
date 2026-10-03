@@ -56,6 +56,9 @@
                                                 @foreach ($inputs as $input)
                                                     <span class="badge bg-light text-dark border">
                                                         {{ $input['title'] ?? '' }}: <strong class="text-primary">{{ $input['parameter'] ?? '' }}</strong>
+                                                        <span class="badge {{ !empty($input['mm']) ? 'bg-soft-success text-success' : 'bg-soft-secondary text-secondary' }} ms-1">
+                                                            mm: {{ !empty($input['mm']) ? 'true' : 'false' }}
+                                                        </span>
                                                     </span>
                                                 @endforeach
                                             </div>
@@ -131,6 +134,7 @@
                             <div class="d-flex gap-2 mb-1 px-1 text-muted small fw-semibold">
                                 <div class="flex-grow-1">Title <span class="text-danger">*</span></div>
                                 <div class="flex-grow-1">Parameter <span class="text-danger">*</span></div>
+                                <div style="width: 120px;">MM <span class="text-danger">*</span></div>
                                 <div style="width: 38px;" class="text-center">Action</div>
                             </div>
                             <div id="inputListContainer">
@@ -191,10 +195,11 @@
             }
         }
 
-        function addInputRow(title = '', parameter = '') {
+        function addInputRow(title = '', parameter = '', mm = 0) {
             rowIndex++;
             var safeTitle = (title || '').toString().replace(/"/g, '&quot;');
             var safeParam = (parameter || '').toString().replace(/"/g, '&quot;');
+            var isMmTrue = (mm == 1 || mm === true || mm === '1' || mm === 'true');
             var rowHtml = `
                 <div class="d-flex align-items-center gap-2 mb-2 input-item-row">
                     <div class="flex-grow-1">
@@ -202,6 +207,12 @@
                     </div>
                     <div class="flex-grow-1">
                         <input type="text" class="form-control input-item-param" name="input_list[${rowIndex}][parameter]" value="${safeParam}" placeholder="e.g. l" required>
+                    </div>
+                    <div style="width: 120px;">
+                        <select class="form-select input-item-mm" name="input_list[${rowIndex}][mm]">
+                            <option value="1" ${isMmTrue ? 'selected' : ''}>true</option>
+                            <option value="0" ${!isMmTrue ? 'selected' : ''}>false</option>
+                        </select>
                     </div>
                     <div style="width: 38px;" class="text-center">
                         <button type="button" class="btn btn-outline-danger btn-sm remove-input-row-btn" title="Remove Item">
@@ -215,7 +226,7 @@
         }
 
         $('#addInputRowBtn').click(function() {
-            addInputRow('', '');
+            addInputRow('', '', 0);
         });
 
         $(document).on('click', '.remove-input-row-btn', function() {
@@ -252,7 +263,7 @@
 
             $('#inputListContainer').empty();
             rowIndex = 0;
-            addInputRow('', '');
+            addInputRow('', '', 0);
 
             $('#shapeModal').modal('show');
         });
@@ -294,10 +305,10 @@
 
                         if (Array.isArray(list) && list.length > 0) {
                             list.forEach(function(item) {
-                                addInputRow(item.title || '', item.parameter || '');
+                                addInputRow(item.title || '', item.parameter || '', item.mm !== undefined ? item.mm : 0);
                             });
                         } else {
-                            addInputRow('', '');
+                            addInputRow('', '', 0);
                         }
 
                         $('#shapeModal').modal('show');
