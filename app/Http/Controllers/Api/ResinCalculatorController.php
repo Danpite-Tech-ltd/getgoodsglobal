@@ -40,7 +40,8 @@ class ResinCalculatorController extends Controller
         ]);
     }
 
-    public function calculation(Request $request) {
+    public function calculation(Request $request)
+    {
         // validation
 
         $data = $request->validate([
@@ -60,12 +61,24 @@ class ResinCalculatorController extends Controller
             $rules['inputs.' . $field['parameter']] = 'required|numeric|gt:0';
         }
         $request->validate($rules);
-        
+
+        $total_volume = 0;
+        if ($shape->type == 'rectangle') {
+
+            $total_volume = 1;
+
+            foreach ($shape->input_list as $field) {
+                $value = $request->input('inputs.' . $field['parameter']);
+
+                $total_volume *= $value;
+            }
+        }
 
         return response()->json([
             'status' => true,
             'message' => 'Calculation Result',
             'data' => [
+                'total_volume' => $total_volume,
                 'shape' => $shape,
                 'resin_ratio' => $ratio,
                 'measurement_unit' => $unit,
