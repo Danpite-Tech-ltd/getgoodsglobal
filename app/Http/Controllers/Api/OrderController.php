@@ -18,6 +18,7 @@ use App\Models\Customer;
 use App\Models\SmsGateway;
 use App\Models\Coupon;
 use App\Models\GeneralSetting;
+use App\Models\Productcolor;
 use Carbon\Carbon;
 use App\Models\ShippingCharge;
 use Illuminate\Http\Request;
@@ -29,13 +30,13 @@ use Illuminate\Support\Facades\Http;
 
 class OrderController extends Controller
 {
-    
+
     public function order_print(Request $request, $order_id){
         $orders = Order::where('invoice_id', $order_id)->with('orderdetails','payment','shipping','customer')->get();
         $view = view('backEnd.order.print', ['orders' => $orders])->render();
         return response()->json(['status' => 'success', 'view' => $view]);
     }
-    
+
     public function orderTrack($invoice_id)
     {
         $orders = Order::where('invoice_id', $invoice_id)
@@ -67,14 +68,14 @@ class OrderController extends Controller
                         ];
                     })
                     ->values();
-    
+
                 $order->products = $groupedProducts;
                 unset($order->orderDetails);
-    
+
                 return $order;
             });
-            
-    
+
+
         return response()->json([
             'status'  => 'success',
             'message' => 'Order Track',
@@ -88,38 +89,38 @@ class OrderController extends Controller
         $orders = Order::where('invoice_id', $invoice_id)->select('invoice_id', 'amount', 'paid_partial_payment_amount')->first();
         $banks = Bank::where('status', 1)->get();
         $advanced = GeneralSetting::first()->payment_percentage;
-        
+
         return response()->json([
             'status' => 'success',
             'message' => 'Payment',
             'data' => $orders,
             'banks' => $banks,
             'advanced' => $advanced
-            
+
         ]);
     }
 
     public function payment_submit(Request $request, $invoice_id)
-    {   
+    {
         try {
             DB::beginTransaction();
             // dd($request->all());
             $advanced = GeneralSetting::first()->payment_percentage;
             $payment_method_id = $request->payment_method_id;
-            
+
             $order = Order::where('invoice_id',$invoice_id)->first();
             $cod = Bank::where('id', $payment_method_id)->first()->cod;
             $cod_charge = round(($order->amount * $cod) / 100);
-            
+
             if($payment_method_id == 5){
                 $total_amount = $order->amount + $cod_charge;
-    
+
                 // advance amount
                 $order->paid_partial_payment_amount = round(($total_amount * $advanced) / 100);
-            
+
                 // due amount
                 $order->payment_due_amount = $total_amount - $order->paid_partial_payment_amount;
-            
+
                 $order->cod_percentage = $cod;
                 $order->cod_charge = $cod_charge;
                 $order->advanced = $advanced;
@@ -127,60 +128,60 @@ class OrderController extends Controller
             }else{
                 $order->cod_percentage = $cod;
                 $order->cod_charge = $cod_charge;
-                
-                $order->paid_partial_payment_amount = $order->amount + $cod_charge; 
+
+                $order->paid_partial_payment_amount = $order->amount + $cod_charge;
                 $order->payment_due_amount =  0;
-                
+
                 $order->amount =  $order->amount + $cod_charge;
             }
-            
-            
+
+
             $order->order_type = $request->payment_method;
             $order->order_status = 22;
             if ($request->file('pay_slip_image')) {
                 $image = $request->file('pay_slip_image');
-    
+
                 if (!is_null($order->pay_slip_image) && file_exists($order->pay_slip_image)) {
                     unlink($order->pay_slip_image);
                 }
-    
+
                 $imageName          = microtime('.') . '.' . $image->getClientOriginalExtension();
                 $imagePath          = 'public/uploads/order_slip/';
                 $image->move($imagePath, $imageName);
-    
+
                 $order->pay_slip_image   = $imagePath . $imageName;
             }
-            
+
             $order->save();
-            
+
             // Update Payment
             $payment                 = Payment::where('order_id', $order->id)->first();
             $payment->order_id       = $order->id;
             $payment->customer_id    = $order->customer_id;
             $payment->payment_method = $request->payment_method;
-            
+
             if($payment_method_id == 5){
                 $cod = Bank::where('id', 5)->first()->cod;
                 $payment->amount = round(($order->amount * $cod) / 100);
             }else{
                 $payment->amount = round(($order->amount * $advanced) / 100);
             }
-            
+
             $payment->payment_status = 'In Review';
             $payment->save();
-            
+
             // if (config('mail.default') !== 'sendmail') {
             //         Mail::to($user->email)->send(new \App\Mail\OrderPlace($order->id ));
             // }
                 $sms_gateway = SmsGateway::where('status',1)->first();
                 $generalsetting = GeneralSetting::where('status',1)->first();
-                
+
                 // $url = $sms_gateway->url ?? '';
                 // $api_key = $sms_gateway->api_key ?? '';
                 // $senderid = $sms_gateway->serderid ?? '';
                 // $number = $request->phone;
                 // $message = "Dear {$request->name},  your order #{$invoice_id} has been placed successfully. Thank You. \r\n{$generalsetting->name}\r\n" . env('APP_URL');
-             
+
                 // $data = [
                 //     "api_key" => $api_key,
                 //     "senderid" => $senderid,
@@ -196,7 +197,7 @@ class OrderController extends Controller
                 // $response = curl_exec($ch);
                 // curl_close($ch);
                 // return $response;
-                
+
             DB::commit();
             return response()->json([
                 'status' => 'success',
@@ -218,7 +219,7 @@ class OrderController extends Controller
             ], 500);
         }
     }
-    
+
     public function apply_coupon(Request $request)
     {
         $coupon = $request->coupon_name;
@@ -279,7 +280,7 @@ class OrderController extends Controller
             // Find Customer
             $user = Customer::find($request->customer_id);
             $setting = GeneralSetting::first();
-            
+
             $total_quantity = $request->total_quantity;
 
             if (!$user) {
@@ -295,7 +296,7 @@ class OrderController extends Controller
                 ->whereIn('id', $request->cart_ids)
                 ->with('cartdetails')
                 ->get();
-                
+
             // dd($cartItems);
 
             if ($cartItems->isEmpty()) {
@@ -318,26 +319,26 @@ class OrderController extends Controller
             $shipping_area = ShippingCharge::find($shippingcharge_id);
 
             $shippingfee = $shipping_area->amount ?? 0;
-            
-            
-            
+
+
+
             // coupon
             $coupon = Coupon::where('coupon_name', $request->coupon_code)->first();
             $coupon_discount = 0;
             // dd($request->coupon_code);
             if (!empty($request->coupon_code)) {
-            
+
                 $coupon = Coupon::where('coupon_name', $request->coupon_code)->first();
-            
+
                 if ($coupon) {
-            
+
                     if ($coupon->coupon_type == 1) {
                         $coupon_discount = $coupon->amount;
-            
+
                     } elseif ($coupon->coupon_type == 2) {
                         $coupon_discount = round(($subtotal * $coupon->amount) / 100);
                     }
-            
+
                     // if ($coupon_discount > $subtotal) {
                     //     $coupon_discount = $subtotal;
                     // }
@@ -375,7 +376,7 @@ class OrderController extends Controller
                 $order->flash_sale_discount_percentage  = $setting->flash_sale_percentage;
             }
             $order->save();
-           
+
             $order->invoice_id = 'ORD-' . 20000 + $order->id;
             $order->save();
 
@@ -422,11 +423,13 @@ class OrderController extends Controller
                     // STOCK UPDATE
                     $product = Product::find($cart->product_id);
 
-
+                    $colorDetails = Productcolor::where('product_id', $cart->product_id)
+                        ->where('color_id', $detail->color_id)->first();
                     Productsize::where('product_id', $cart->product_id)
                         ->where('size', $detail->size)
+                        ->where('color_id', $colorDetails->id)
                         ->decrement('stock', $detail->quantity);
-                   
+
                 }
             }
             // if (config('mail.default') !== 'sendmail') {
@@ -438,21 +441,21 @@ class OrderController extends Controller
             // Delete related cart details first
             CartDetails::whereIn('cart_id', $cartItems->pluck('id'))
                 ->delete();
-        
+
             // Delete selected carts only
             Cart::whereIn('id', $cartItems->pluck('id'))
                 ->where('user_id', $user_id)
                 ->delete();
-            
+
             DB::commit();
-            
+
             return response()->json([
                 'status'  => 'success',
                 'message' => 'Order placed successfully',
                 'order_id' => $order->id,
                 'invoice_id' => $order->invoice_id,
                 'validated_input' => $validated,
-                
+
             ], 201);
         } catch (ValidationException $e) {
              DB::rollBack();
@@ -468,8 +471,8 @@ class OrderController extends Controller
             ], 500);
         }
     }
-    
-    
+
+
     public function buyorderPlace(Request $request)
     {
         // dd($request->all());
@@ -487,7 +490,7 @@ class OrderController extends Controller
             // Find Customer
             $user = Customer::find($request->customer_id);
             $setting = GeneralSetting::first();
-            
+
             $total_quantity = $request->total_quantity;
 
             if (!$user) {
@@ -523,34 +526,34 @@ class OrderController extends Controller
             $shipping_area = ShippingCharge::find($shippingcharge_id);
 
             $shippingfee = $shipping_area->amount ?? 0;
-            
-            
-            
-            
+
+
+
+
             // coupon
             $coupon = Coupon::where('coupon_name', $request->coupon_code)->first();
             $coupon_discount = 0;
-            
+
             if (!empty($request->coupon_code)) {
-            
+
                 $coupon = Coupon::where('coupon_name', $request->coupon_code)->first();
-            
+
                 if ($coupon) {
-            
+
                     if ($coupon->coupon_type == 1) {
                         $coupon_discount = $coupon->amount;
-            
+
                     } elseif ($coupon->coupon_type == 2) {
                         $coupon_discount = round(($subtotal * $coupon->amount) / 100);
                     }
-            
+
                     // if ($coupon_discount > $subtotal) {
                     //     $coupon_discount = $subtotal;
                     // }
                 }
             }
-            
-            
+
+
 
             if (!$shipping_area) {
                 return response()->json([
@@ -561,7 +564,7 @@ class OrderController extends Controller
 
             // Total Amount
             $totalAmount = $subtotal + $shippingfee - $coupon_discount;
-            
+
 
             //     CREATE ORDER
             $order = new Order();
@@ -582,7 +585,7 @@ class OrderController extends Controller
                 $order->flash_sale_discount_percentage  = $setting->flash_sale_percentage;
             }
             $order->save();
-            
+
             // $order->update([
             //     'invoice_id' => 2000 + $order->id
             // ]);
@@ -632,29 +635,32 @@ class OrderController extends Controller
                     // STOCK UPDATE
                     $product = Product::find($buy->product_id);
 
-                    
+                    $colorDetails = Productcolor::where('product_id', $buy->product_id)
+                        ->where('color_id', $detail->color_id)->first();
+
                     Productsize::where('product_id', $buy->product_id)
                         ->where('size', $detail->size)
+                        ->where('color_id', $colorDetails->id)
                         ->decrement('stock', $detail->quantity);
-                    
+
                 }
             }
-            
+
 
 
             //     CLEAR buy
             BuyDetail::whereIn('buy_id', $buyItems->pluck('id'))->delete();
             Buy::where('user_id', $user_id)->delete();
-            
+
             DB::commit();
-            
+
             return response()->json([
                 'status'  => 'success',
                 'message' => 'Order placed successfully',
                 'order_id' => $order->id,
                 'invoice_id' => $order->invoice_id,
                 'validated_input' => $validated,
-                
+
             ], 201);
         } catch (ValidationException $e) {
              DB::rollBack();
