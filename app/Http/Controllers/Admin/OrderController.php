@@ -797,27 +797,216 @@ class OrderController extends Controller
         Toastr::success('Thanks, Your order place successfully', 'Success!');
         return redirect('admin/order/pending');
     }
+    public function get_product_variants(Request $request)
+    {
+        $product = Product::with(['image', 'procolors.color', 'prosizes.color'])
+            ->where('id', $request->id)
+            ->first();
+
+        if (!$product) {
+            return response()->json(['status' => 'error', 'message' => 'Product not found'], 404);
+        }
+
+        // Build color => sizes+price map from productsizes
+        $variants = [];
+        $colors = \App\Models\Productcolor::where('product_id', $product->id)
+            ->with('color')
+            ->get();
+
+        foreach ($colors as $pc) {
+            $sizes = \App\Models\Productsize::where('product_id', $product->id)
+                ->where('color_id', $pc->color_id)
+                ->get(['id', 'size', 'SalePrice', 'RegularPrice', 'PurchasePrice', 'stock', 'color_id']);
+
+            $mappedSizes = [];
+            foreach ($sizes as $sz) {
+                $mappedSizes[] = [
+                    'id'             => $sz->id,
+                    'size'           => $sz->size,
+                    'price'          => $sz->SalePrice !== null ? (float)$sz->SalePrice : (float)$product->new_price,
+                    'sale_price'     => (float)$sz->SalePrice,
+                    'regular_price'  => (float)$sz->RegularPrice,
+                    'purchase_price' => (float)$sz->PurchasePrice,
+                    'stock'          => $sz->stock,
+                    'color_id'       => $sz->color_id,
+                ];
+            }
+
+            $colorName = $pc->color->colorName ?? $pc->color ?? '';
+            $colorImage = $pc->Image ?? '';
+            $colorImageUrl = $colorImage ? asset($colorImage) : ($product->image ? asset($product->image->image) : '');
+
+            $variants[] = [
+                'color_id'        => $pc->color_id,
+                'color_name'      => $colorName,
+                'color_image'     => $colorImage,
+                'color_image_url' => $colorImageUrl,
+                'sizes'           => $mappedSizes,
+            ];
+        }
+
+        if (empty($variants)) {
+            $sizes = \App\Models\Productsize::where('product_id', $product->id)
+                ->get(['id', 'size', 'SalePrice', 'RegularPrice', 'PurchasePrice', 'stock', 'color_id']);
+
+            if ($sizes->isNotEmpty()) {
+                $mappedSizes = [];
+                foreach ($sizes as $sz) {
+                    $mappedSizes[] = [
+                        'id'             => $sz->id,
+                        'size'           => $sz->size,
+                        'price'          => $sz->SalePrice !== null ? (float)$sz->SalePrice : (float)$product->new_price,
+                        'sale_price'     => (float)$sz->SalePrice,
+                        'regular_price'  => (float)$sz->RegularPrice,
+                        'purchase_price' => (float)$sz->PurchasePrice,
+                        'stock'          => $sz->stock,
+                        'color_id'       => $sz->color_id,
+                    ];
+                }
+                $variants[] = [
+                    'color_id'        => null,
+                    'color_name'      => 'Default',
+                    'color_image'     => '',
+                    'color_image_url' => $product->image ? asset($product->image->image) : '',
+                    'sizes'           => $mappedSizes,
+                ];
+            }
+        }
+
+        return response()->json([
+            'status'   => 'success',
+            'product'  => [
+                'id'        => $product->id,
+                'name'      => $product->name,
+                'new_price' => $product->new_price,
+                'image'     => $product->image ? asset($product->image->image) : '',
+            ],
+            'variants' => $variants,
+        ]);
+    }
+
     public function cart_add(Request $request){
-        $product = Product::select('id','name','stock','new_price','old_price','purchase_price','slug')->where(['id' => $request->id])->first();
+        $product = Product::with(['image', 'procolors.color', 'prosizes.color'])
+            ->where('id', $request->id)
+            ->first();
+
+        if (!$product) {
+            return response()->json(['status' => 'error', 'message' => 'Product not found'], 404);
+        }
+
         $qty = 1;
+        $price = $product->new_price;
+        $purchase_price = $product->purchase_price;
+        $product_color = $request->color_name ?? '';
+        $product_color_image = $request->color_image ?? '';
+        $color_id = $request->color_id ?? null;
+        $product_size = $request->size ?? '';
+
+        // If color/size not explicitly provided, choose first variant as default
+        if (empty($product_color) && empty($product_size)) {
+            $firstColor = $product->procolors->first();
+            if ($firstColor) {
+                $color_id = $firstColor->color_id;
+                $product_color = $firstColor->color->colorName ?? $firstColor->color ?? '';
+                $product_color_image = $firstColor->Image ?? '';
+
+                $firstSize = $product->prosizes->where('color_id', $color_id)->first();
+                if ($firstSize) {
+                    $product_size = $firstSize->size;
+                    if ($firstSize->SalePrice !== null && (float)$firstSize->SalePrice > 0) {
+                        $price = (float)$firstSize->SalePrice;
+                    }
+                    if ($firstSize->PurchasePrice !== null) {
+                        $purchase_price = (float)$firstSize->PurchasePrice;
+                    }
+                }
+            } else {
+                $firstSize = $product->prosizes->first();
+                if ($firstSize) {
+                    $product_size = $firstSize->size;
+                    if ($firstSize->SalePrice !== null && (float)$firstSize->SalePrice > 0) {
+                        $price = (float)$firstSize->SalePrice;
+                    }
+                    if ($firstSize->PurchasePrice !== null) {
+                        $purchase_price = (float)$firstSize->PurchasePrice;
+                    }
+                }
+            }
+        } elseif ($request->filled('size_price') && (float)$request->size_price > 0) {
+            $price = (float)$request->size_price;
+        }
+
+        $image = $product_color_image ?: ($product->image->image ?? '');
+
         $cartinfo = Cart::instance('pos_shopping')->add([
             'id' => $product->id,
             'name' => $product->name,
             'qty' => $qty,
-            'price' => $product->new_price,
+            'price' => $price,
             'options' => [
-                'slug' => $product->slug,
-                'image' => $product->image->image,
-                'old_price' => $product->old_price,
-                'purchase_price' => $product->purchase_price,
-                'product_discount' => 0,
+                'slug'                => $product->slug,
+                'image'               => $image,
+                'old_price'           => $product->old_price,
+                'purchase_price'      => $purchase_price,
+                'product_discount'    => 0,
+                'product_color'       => $product_color,
+                'product_color_image' => $product_color_image,
+                'color_id'            => $color_id,
+                'product_size'        => $product_size,
             ],
         ]);
         return response()->json(compact('cartinfo'));
     }
+
+    public function cart_update_variant(Request $request)
+    {
+        $cart = Cart::instance('pos_shopping')->get($request->rowId);
+        if (!$cart) {
+            return response()->json(['status' => 'error', 'message' => 'Cart item not found'], 404);
+        }
+
+        $price = $cart->price;
+        if ($request->filled('size_price') && (float)$request->size_price > 0) {
+            $price = (float)$request->size_price;
+        }
+
+        $options = $cart->options ? $cart->options->toArray() : [];
+
+        if ($request->has('color_name')) {
+            $options['product_color'] = $request->color_name;
+        }
+        if ($request->has('color_image')) {
+            $options['product_color_image'] = $request->color_image;
+            if (!empty($request->color_image)) {
+                $options['image'] = $request->color_image;
+            }
+        }
+        if ($request->has('color_id')) {
+            $options['color_id'] = $request->color_id;
+        }
+        if ($request->has('size')) {
+            $options['product_size'] = $request->size;
+        }
+        if ($request->filled('purchase_price')) {
+            $options['purchase_price'] = (float)$request->purchase_price;
+        }
+
+        Cart::instance('pos_shopping')->update($request->rowId, [
+            'price'   => $price,
+            'options' => $options,
+        ]);
+
+        return response()->json(['status' => 'success']);
+    }
+
     public function cart_content(){
         $cartinfo = Cart::instance('pos_shopping')->content();
-        return view('backEnd.order.cart_content',compact('cartinfo'));
+        $productIds = $cartinfo->pluck('id')->unique();
+        $cartProducts = Product::whereIn('id', $productIds)
+            ->with(['procolors.color', 'prosizes.color'])
+            ->get()
+            ->keyBy('id');
+        return view('backEnd.order.cart_content', compact('cartinfo', 'cartProducts'));
     }
     public function cart_details(){
         $cartinfo = Cart::instance('pos_shopping')->content();
@@ -886,16 +1075,24 @@ class OrderController extends Controller
             'qty' => $ordetails->qty,
             'price' => $ordetails->sale_price,
             'options' => [
-                'image' => $ordetails->image->image,
-                'purchase_price' => $ordetails->purchase_price,
-                'product_discount' => $ordetails->product_discount,
-                'details_id' => $ordetails->id,
-                'product_color' => $ordetails->product_color,
+                'image'               => $ordetails->product_color_image ?: ($ordetails->image->image ?? ''),
+                'purchase_price'      => $ordetails->purchase_price,
+                'product_discount'    => $ordetails->product_discount,
+                'details_id'          => $ordetails->id,
+                'product_color'       => $ordetails->product_color,
+                'product_color_image' => $ordetails->product_color_image,
+                'product_size'        => $ordetails->product_size,
+                'color_id'            => null,
             ],
         ]);
         }
         $cartinfo  = Cart::instance('pos_shopping')->content();
-        return view('backEnd.order.edit',compact('products','cartinfo','shippingcharge','shippinginfo','order'));
+        $productIds = $cartinfo->pluck('id')->unique();
+        $cartProducts = Product::whereIn('id', $productIds)
+            ->with(['procolors.color', 'prosizes.color'])
+            ->get()
+            ->keyBy('id');
+        return view('backEnd.order.edit',compact('products','cartinfo','shippingcharge','shippinginfo','order','cartProducts'));
     }
 
     public function order_update(Request $request)
@@ -976,7 +1173,7 @@ class OrderController extends Controller
         ->whereNotIn('id', array_filter($cartRowIds))
         ->delete();
 
-    // --- update or Insert  cart it--
+    // --- update or Insert  cart items ---
     foreach (Cart::instance('pos_shopping')->content() as $cart) {
         $exits = OrderDetails::where('id', $cart->options->details_id)->first();
 
@@ -988,11 +1185,14 @@ class OrderController extends Controller
             $order_details->product_id = $cart->id;
         }
 
-        $order_details->product_name     = $cart->name;
-        $order_details->purchase_price   = $cart->options->purchase_price;
-        $order_details->product_discount = $cart->options->product_discount;
-        $order_details->sale_price       = $cart->price;
-        $order_details->qty              = $cart->qty;
+        $order_details->product_name        = $cart->name;
+        $order_details->purchase_price      = $cart->options->purchase_price;
+        $order_details->product_discount    = $cart->options->product_discount;
+        $order_details->sale_price          = $cart->price;
+        $order_details->qty                 = $cart->qty;
+        $order_details->product_color       = $cart->options->product_color ?? null;
+        $order_details->product_color_image = $cart->options->product_color_image ?? null;
+        $order_details->product_size        = $cart->options->product_size ?? null;
         $order_details->save();
     }
 

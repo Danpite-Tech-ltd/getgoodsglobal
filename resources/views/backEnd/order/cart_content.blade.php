@@ -1,24 +1,145 @@
- @php
+@php
   $product_discount = 0;
 @endphp
 @foreach($cartinfo as $key=>$value)
-<tr>
-  <td><img height="30" src="{{asset($value->options->image)}}"></td>
-  <td>{{$value->name}}</td>
+@php
+  $productData = $cartProducts[$value->id] ?? null;
+  $colors = $productData ? $productData->procolors : collect();
+  $sizes = $productData ? $productData->prosizes : collect();
+
+  $variantsForThisProduct = [];
+  if ($productData) {
+      foreach($productData->procolors as $pc) {
+          $cName = $pc->color->colorName ?? $pc->color ?? 'Color #'.$pc->color_id;
+          $matchingSizes = $productData->prosizes->where('color_id', $pc->color_id)->map(function($s) {
+              return [
+                  'size'           => $s->size,
+                  'price'          => $s->SalePrice !== null ? (float)$s->SalePrice : 0,
+                  'sale_price'     => (float)$s->SalePrice,
+                  'regular_price'  => (float)$s->RegularPrice,
+                  'purchase_price' => (float)$s->PurchasePrice,
+                  'stock'          => $s->stock,
+                  'color_id'       => $s->color_id,
+              ];
+          })->values()->toArray();
+
+          $variantsForThisProduct[$pc->color_id] = [
+              'color_id'    => $pc->color_id,
+              'color_name'  => $cName,
+              'color_image' => $pc->Image ?? '',
+              'sizes'       => $matchingSizes,
+          ];
+      }
+
+      if (empty($variantsForThisProduct) && $sizes->isNotEmpty()) {
+          $sizesList = $sizes->map(function($s) {
+              return [
+                  'size'           => $s->size,
+                  'price'          => $s->SalePrice !== null ? (float)$s->SalePrice : 0,
+                  'sale_price'     => (float)$s->SalePrice,
+                  'regular_price'  => (float)$s->RegularPrice,
+                  'purchase_price' => (float)$s->PurchasePrice,
+                  'stock'          => $s->stock,
+                  'color_id'       => $s->color_id,
+              ];
+          })->values()->toArray();
+          $variantsForThisProduct['default'] = [
+              'color_id'    => null,
+              'color_name'      => 'Default',
+              'color_image' => '',
+              'sizes'       => $sizesList,
+          ];
+      }
+  }
+
+  // Find currently selected color_id
+  $selectedColorId = $value->options->color_id ?? null;
+  if(!$selectedColorId && !empty($value->options->product_color) && $colors->isNotEmpty()) {
+      $matchedColor = $colors->first(function($c) use ($value) {
+          $name = $c->color->colorName ?? $c->color ?? '';
+          return strtolower(trim($name)) === strtolower(trim($value->options->product_color));
+      });
+      if($matchedColor) {
+          $selectedColorId = $matchedColor->color_id;
+      }
+  }
+
+  // Filter sizes for this color
+  $colorSizes = $selectedColorId ? $sizes->where('color_id', $selectedColorId) : $sizes;
+@endphp
+<tr id="row-{{$value->rowId}}" data-rowid="{{$value->rowId}}" data-productid="{{$value->id}}">
+  <input type="hidden" class="row_variants_json" value='@json($variantsForThisProduct)' />
+
+  <td class="text-center">
+    <img height="35" width="35" class="rounded border row_img" src="{{ asset($value->options->image) ?? ''}}" style="object-fit: cover;">
+  </td>
   <td>
-    <div class="qty-cart vcart-qty">
+    
+    <strong class="text-dark">{{$value->name}}</strong>
+  </td>
+  <td>
+    @if($colors->isNotEmpty())
+      <select class="form-control form-select-sm cart_color" data-rowid="{{$value->rowId}}" data-productid="{{$value->id}}">
+        <option value="">Select Color</option>
+        @foreach($colors as $color)
+          @php
+            $cName = $color->color->colorName ?? $color->color ?? 'Color #'.$color->color_id;
+            $isSelected = ($selectedColorId == $color->color_id) || (strtolower(trim($value->options->product_color ?? '')) === strtolower(trim($cName)));
+          @endphp
+          <option value="{{$color->color_id}}" 
+                  data-color-name="{{$cName}}" 
+                  data-color-image="{{$color->Image}}" 
+                  {{ $isSelected ? 'selected' : '' }}>
+            {{$cName}}
+          </option>
+        @endforeach
+      </select>
+    @elseif(!empty($value->options->product_color))
+      <span class="badge badge-soft-info">{{$value->options->product_color}}</span>
+    @else
+      <span class="text-muted small">N/A</span>
+    @endif
+  </td>
+  <td>
+    @if($sizes->isNotEmpty())
+      <select class="form-control form-select-sm cart_size" data-rowid="{{$value->rowId}}" data-productid="{{$value->id}}">
+        <option value="">Select Size</option>
+        @foreach($colorSizes as $sz)
+          @php
+            $sPrice = $sz->SalePrice !== null ? (float)$sz->SalePrice : (float)$value->price;
+            $isSelected = strtolower(trim($value->options->product_size ?? '')) === strtolower(trim($sz->size));
+          @endphp
+          <option value="{{$sz->size}}" 
+                  data-price="{{$sPrice}}" 
+                  data-purchase-price="{{$sz->PurchasePrice ?? 0}}" 
+                  {{ $isSelected ? 'selected' : '' }}>
+            {{$sz->size}} (৳{{$sPrice}})
+          </option>
+        @endforeach
+      </select>
+    @elseif(!empty($value->options->product_size))
+      <span class="badge badge-soft-warning">{{$value->options->product_size}}</span>
+    @else
+      <span class="text-muted small">N/A</span>
+    @endif
+  </td>
+  <td class="text-center">
+    <div class="qty-cart">
       <div class="quantity">
-          <button class="minus cart_decrement" value="{{$value->qty}}"  data-id="{{$value->rowId}}">-</button>
-          <input type="text" value="{{$value->qty}}" readonly />
-          <button class="plus cart_increment" value="{{$value->qty}}" data-id="{{$value->rowId}}">+</button>
+        <button type="button" class="minus cart_decrement" data-id="{{$value->rowId}}" value="{{$value->qty}}">-</button>
+        <input type="text" value="{{$value->qty}}" readonly />
+        <button type="button" class="plus cart_increment" data-id="{{$value->rowId}}" value="{{$value->qty}}">+</button>
       </div>
-  </div>
+    </div>
   </td>
-  <td>{{$value->price}}</td>
-  <td class="discount"><input type="number" class="product_discount" value="{{$value->options->product_discount}}" placeholder="0.00" data-id="{{$value->rowId}}">
+  <td class="text-center fw-bold">৳{{$value->price}}</td>
+  <td class="discount text-center">
+    <input type="number" class="form-control form-control-sm product_discount" value="{{$value->options->product_discount}}" placeholder="0.00" data-id="{{$value->rowId}}">
   </td>
-  <td>{{($value->price - $value->options->product_discount)*$value->qty}}</td>
-  <td><button type="button" class="btn btn-danger btn-xs cart_remove" data-id="{{$value->rowId}}"><i class="fa fa-times"></i></button></td>
+  <td class="text-center fw-bold text-primary">৳{{($value->price - $value->options->product_discount)*$value->qty}}</td>
+  <td class="text-center">
+    <button type="button" class="btn btn-danger btn-xs cart_remove" data-id="{{$value->rowId}}" title="Remove"><i class="fa fa-times"></i></button>
+  </td>
 </tr>
 
 @php
@@ -27,112 +148,3 @@
 @endphp
 
 @endforeach
-<script>
-    function cart_content(){
-           $.ajax({
-             type:"GET",
-             url:"{{route('admin.order.cart_content')}}",
-             dataType: "html",
-             success: function(cartinfo){
-               $('#cartTable').html(cartinfo)
-             }
-          });
-      }
-      function cart_details(){
-           $.ajax({
-             type:"GET",
-             url:"{{route('admin.order.cart_details')}}",
-             dataType: "html",
-             success: function(cartinfo){
-               $('#cart_details').html(cartinfo)
-             }
-          });
-      }
-    $(".cart_increment").click(function(e){
-        e.preventDefault();
-        var id = $(this).data("id");
-        var qty = $(this).val();
-        if(id){
-              $.ajax({
-               cache: false,
-               data:{'id':id,'qty':qty},
-               type:"GET",
-               url:"{{route('admin.order.cart_increment')}}",
-               dataType: "json",
-            success: function(cartinfo){
-                return cart_content()+cart_details();
-            }
-          });
-        }
-   });
-    $(".cart_decrement").click(function(e){
-        e.preventDefault();
-        var id = $(this).data("id");
-        var qty = $(this).val();
-        if(id){
-              $.ajax({
-               cache: false,
-               type:"GET",
-               data:{'id':id,'qty':qty},
-               url:"{{route('admin.order.cart_decrement')}}",
-               dataType: "json",
-            success: function(cartinfo){
-                return cart_content()+cart_details();
-            }
-          });
-        }
-   });
-    $(".cart_remove").click(function(e){
-        e.preventDefault();
-        var id = $(this).data("id");
-        if(id){
-              $.ajax({
-               cache: false,
-               type:"GET",
-               data:{'id':id},
-               url:"{{route('admin.order.cart_remove')}}",
-               dataType: "json",
-              success: function(cartinfo){
-                return cart_content()+cart_details();
-            }
-          });
-        }
-   });
-   $(".product_discount").change(function(){
-        var id = $(this).data("id");
-        var discount = $(this).val();
-          $.ajax({
-           cache: false,
-           type:"GET",
-           data:{'id':id,'discount':discount},
-           url:"{{route('admin.order.product_discount')}}",
-           dataType: "json",
-          success: function(cartinfo){
-            return cart_content()+cart_details();
-          }
-        });
-   });
-    $(".cartclear").click(function(e){
-      $.ajax({
-           cache: false,
-           type:"GET",
-           url:"{{route('admin.order.cart_clear')}}",
-           dataType: "json",
-          success: function(cartinfo){
-            return cart_content()+cart_details();
-          }
-       });
-   });// pshippingfee from total
-    $("#area").on("change", function () {
-        var id = $(this).val();
-        $.ajax({
-            type: "GET",
-            data: { id: id },
-            url: "{{route('admin.order.cart_shipping')}}",
-            dataType: "html",
-            success: function(cartinfo){
-               return cart_content()+cart_details();
-            }
-        });
-    });
-</script>

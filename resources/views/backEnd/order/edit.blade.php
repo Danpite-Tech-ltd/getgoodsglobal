@@ -2,10 +2,77 @@
 @section('title','Order Edit')
 @section('css')
 <style>
-    .increment_btn,
-    .remove_btn {
-        margin-top: -17px;
-        margin-bottom: 10px;
+    .cart-table th, .cart-table td {
+        vertical-align: middle !important;
+    }
+    .qty-cart {
+        width: 105px;
+        margin: 0 auto;
+    }
+    .qty-cart .quantity {
+        position: relative;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        height: 32px;
+        overflow: hidden;
+        background: #fff;
+    }
+    .qty-cart .quantity input {
+        width: 100% !important;
+        height: 32px !important;
+        text-align: center;
+        border: none !important;
+        padding: 0 32px !important;
+        font-weight: 600;
+        font-size: 14px;
+        background: transparent;
+        line-height: 32px;
+    }
+    .qty-cart .quantity .minus,
+    .qty-cart .quantity .plus {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 30px;
+        height: 32px;
+        line-height: 28px;
+        background: #f1f3f5;
+        border: 0;
+        color: #333;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        transition: background 0.2s;
+        z-index: 10;
+    }
+    .qty-cart .quantity .minus:hover,
+    .qty-cart .quantity .plus:hover {
+        background: #e2e6ea;
+    }
+    .qty-cart .quantity .minus {
+        left: 0;
+        border-right: 1px solid #ccc;
+    }
+    .qty-cart .quantity .plus {
+        right: 0;
+        border-left: 1px solid #ccc;
+    }
+    .cart-table select.form-control {
+        font-size: 12px;
+        padding: 4px 6px;
+        height: 32px;
+    }
+    .cart-table input.product_discount {
+        height: 32px !important;
+        padding: 4px !important;
+        text-align: center;
+        font-size: 13px;
+        max-width: 80px;
+        margin: 0 auto;
     }
 </style>
 <link href="{{asset('public/backEnd')}}/assets/libs/select2/css/select2.min.css" rel="stylesheet" type="text/css" />
@@ -52,60 +119,22 @@
                         </div>
                         <!-- col end -->
                         <div class="col-sm-12">
-                          <table class="table table-bordered table-responsive-sm">
+                          <table class="table table-bordered table-responsive-sm cart-table">
                             <thead>
                               <tr>
-                              <tr>
-                                <th style="width:10%">Image</th>
-                                <th style="width:25%">Name</th>
-                                <!--<th style="width:10%">Product Color</th>-->
-                                <th style="width:12.5%">Quantity</th>
-                                <th style="width:12.5%">Sell Price</th>
-                                <!--<th style="width:12.5%">Discount</th>-->
-                                <th style="width:12.5%">Sub Total</th>
-                                <th style="width:15%">Action</th>
-                              </tr>
+                                <th style="width:7%; text-align: center;">Image</th>
+                                <th style="width:23%;">Name</th>
+                                <th style="width:14%;">Color</th>
+                                <th style="width:14%;">Size</th>
+                                <th style="width:120px; text-align: center;">Quantity</th>
+                                <th style="width:10%; text-align: center;">Sell Price</th>
+                                <th style="width:10%; text-align: center;">Discount</th>
+                                <th style="width:10%; text-align: center;">Sub Total</th>
+                                <th style="width:6%; text-align: center;">Action</th>
                               </tr>
                             </thead>
                             <tbody id="cartTable">
-                              @php
-                                $product_discount = 0;
-                              @endphp
-                              @foreach($cartinfo as $key=>$value)
-                              <tr>
-                                <td><img height="30" src="{{asset($value->options->image)}}"></td>
-                                <td>{{$value->name}} ({{$value->options->product_color ?? 'N/A'}})</td>
-                           
-                                @php
-                                    $product_color_image = App\Models\Productcolor::where('product_id', $value->id)->where('color' , $value->options->product_color)->first()->Image ?? 'N/A';
-                                @endphp
-                                <!--@if($product_color_image != 'N/A')-->
-                                <!--<td><img height="50" src="{{asset($product_color_image)}}"></td>-->
-                                <!--@else-->
-                                <!--<td><img src="" alt="Null"></td>-->
-                                <!--@endif-->
-                                
-                                <td>
-                                  <div class="qty-cart vcart-qty">
-                                    <div class="quantity">
-                                        <button class="minus cart_decrement" value="{{$value->qty}}"  data-id="{{$value->rowId}}">-</button>
-                                        <input type="text" value="{{$value->qty}}" readonly />
-                                        <button class="plus cart_increment" value="{{$value->qty}}" data-id="{{$value->rowId}}">+</button>
-                                    </div>
-                                </div>
-                                </td>
-                              
-                                <td>{{$value->price}}</td>
-                                <td class="discount"><input type="number" class="product_discount" value="{{$value->options->product_discount}}" placeholder="0.00" data-id="{{$value->rowId}}">
-                                </td>
-                                <!--<td>{{($value->price - $value->options->product_discount)*$value->qty}}</td>-->
-                                <td><button type="button" class="btn btn-danger btn-xs cart_remove" data-id="{{$value->rowId}}"><i class="fa fa-times"></i></button></td>
-                              </tr>
-                              @php
-                              $product_discount += $value->options->product_discount*$value->qty;
-                              Session::put('product_discount',$product_discount);
-                              @endphp
-                              @endforeach
+                              @include('backEnd.order.cart_content')
                             </tbody>
                           </table>
                         </div>
@@ -261,119 +290,217 @@
     $(document).ready(function () {
         $('.select2').select2();
     });
-</script>
-<script>
-    function cart_content(){
-           $.ajax({
-             type:"GET",
-             url:"{{route('admin.order.cart_content')}}",
-             dataType: "html",
-             success: function(cartinfo){
-               $('#cartTable').html(cartinfo)
-             }
-          });
-      }
-      function cart_details(){
-           $.ajax({
-             type:"GET",
-             url:"{{route('admin.order.cart_details')}}",
-             dataType: "html",
-             success: function(cartinfo){
-               $('#cart_details').html(cartinfo)
-             }
-          });
-      }
 
-      $('#cart_add').on('change',function(e){
-       var id =$(this).val();
+    function cart_content(){
+        $.ajax({
+            type: "GET",
+            url: "{{route('admin.order.cart_content')}}",
+            dataType: "html",
+            success: function(cartinfo){
+                $('#cartTable').html(cartinfo);
+            }
+        });
+    }
+
+    function cart_details(){
+        $.ajax({
+            type: "GET",
+            url: "{{route('admin.order.cart_details')}}",
+            dataType: "html",
+            success: function(cartinfo){
+                $('#cart_details').html(cartinfo);
+            }
+        });
+    }
+
+    // Add product to cart
+    $('#cart_add').on('change', function(e) {
+        var id = $(this).val();
+        if (!id) return;
+        $.ajax({
+            type: "GET",
+            data: { id: id },
+            url: "{{route('admin.order.cart_add')}}",
+            dataType: "json",
+            success: function(response) {
+                cart_content();
+                cart_details();
+                $('#cart_add').val('').trigger('change.select2');
+            }
+        });
+    });
+
+    // Helper to update variant on server
+    function updateCartVariant(rowId, colorId, colorName, colorImage, sizeName, sizePrice, purchasePrice) {
+        var data = { rowId: rowId };
+        if (colorId !== null) data.color_id = colorId;
+        if (colorName !== null) data.color_name = colorName;
+        if (colorImage !== null) data.color_image = colorImage;
+        if (sizeName !== null) data.size = sizeName;
+        if (sizePrice !== null) data.size_price = sizePrice;
+        if (purchasePrice !== null) data.purchase_price = purchasePrice;
+
+        $.ajax({
+            type: "GET",
+            data: data,
+            url: "{{route('admin.order.cart_update_variant')}}",
+            dataType: "json",
+            success: function(res) {
+                cart_content();
+                cart_details();
+            }
+        });
+    }
+
+    // When Color changes in a table row
+    $(document).on('change', '.cart_color', function(e) {
+        var row = $(this).closest('tr');
+        var rowId = $(this).data('rowid');
+        var colorId = $(this).val();
+        var selectedOption = $(this).find('option:selected');
+        var colorName = selectedOption.data('color-name') || '';
+        var colorImage = selectedOption.data('color-image') || '';
+
+        var variantsJson = row.find('.row_variants_json').val();
+        var variants = {};
+        try {
+            variants = variantsJson ? JSON.parse(variantsJson) : {};
+        } catch(e) {
+            variants = {};
+        }
+
+        var sizeSelect = row.find('.cart_size');
+        sizeSelect.empty().append('<option value="">Select Size</option>');
+
+        var sizes = [];
+        if (variants[colorId] && variants[colorId].sizes) {
+            sizes = variants[colorId].sizes;
+        }
+
+        if (sizes.length > 0) {
+            $.each(sizes, function(i, sz) {
+                sizeSelect.append('<option value="' + sz.size + '" data-price="' + sz.price + '" data-purchase-price="' + sz.purchase_price + '">' + sz.size + ' (৳' + sz.price + ')</option>');
+            });
+            // Auto-select first size for this color
+            sizeSelect.val(sizes[0].size);
+            var sizeName = sizes[0].size;
+            var sizePrice = sizes[0].price;
+            var purchasePrice = sizes[0].purchase_price;
+
+            // Update row image if color image exists
+            if (colorImage) {
+                var assetBase = "{{asset('')}}";
+                row.find('.row_img').attr('src', assetBase + colorImage);
+            }
+
+            updateCartVariant(rowId, colorId, colorName, colorImage, sizeName, sizePrice, purchasePrice);
+        } else {
+            updateCartVariant(rowId, colorId, colorName, colorImage, '', 0, 0);
+        }
+    });
+
+    // When Size changes in a table row
+    $(document).on('change', '.cart_size', function(e) {
+        var rowId = $(this).data('rowid');
+        var sizeName = $(this).val();
+        var selectedOption = $(this).find('option:selected');
+        var sizePrice = selectedOption.data('price') || 0;
+        var purchasePrice = selectedOption.data('purchase-price') || 0;
+
+        updateCartVariant(rowId, null, null, null, sizeName, sizePrice, purchasePrice);
+    });
+
+    // Quantity Increment
+    $(document).on('click', '.cart_increment', function(e) {
+        e.preventDefault();
+        var id = $(this).data("id");
+        var qty = $(this).val();
         if(id){
             $.ajax({
-            cache: 'false',
-            type:"GET",
-            data:{'id':id},
-            url:"{{route('admin.order.cart_add')}}",
-            dataType: "json",
-            success: function(cartinfo){
-                return cart_content()+cart_details();
-            }
+                cache: false,
+                data: { 'id': id, 'qty': qty },
+                type: "GET",
+                url: "{{route('admin.order.cart_increment')}}",
+                dataType: "json",
+                success: function(cartinfo){
+                    cart_content();
+                    cart_details();
+                }
             });
         }
-       });
-    $(".cart_increment").click(function(e){
+    });
+
+    // Quantity Decrement
+    $(document).on('click', '.cart_decrement', function(e) {
         e.preventDefault();
         var id = $(this).data("id");
         var qty = $(this).val();
         if(id){
-              $.ajax({
-               cache: false,
-               data:{'id':id,'qty':qty},
-               type:"GET",
-               url:"{{route('admin.order.cart_increment')}}",
-               dataType: "json",
-            success: function(cartinfo){
-                return cart_content()+cart_details();
-            }
-          });
+            $.ajax({
+                cache: false,
+                type: "GET",
+                data: { 'id': id, 'qty': qty },
+                url: "{{route('admin.order.cart_decrement')}}",
+                dataType: "json",
+                success: function(cartinfo){
+                    cart_content();
+                    cart_details();
+                }
+            });
         }
-   });
-    $(".cart_decrement").click(function(e){
-        e.preventDefault();
-        var id = $(this).data("id");
-        var qty = $(this).val();
-        if(id){
-              $.ajax({
-               cache: false,
-               type:"GET",
-               data:{'id':id,'qty':qty},
-               url:"{{route('admin.order.cart_decrement')}}",
-               dataType: "json",
-            success: function(cartinfo){
-                return cart_content()+cart_details();
-            }
-          });
-        }
-   });
-    $(".cart_remove").click(function(e){
+    });
+
+    // Cart Remove
+    $(document).on('click', '.cart_remove', function(e) {
         e.preventDefault();
         var id = $(this).data("id");
         if(id){
-              $.ajax({
-               cache: false,
-               type:"GET",
-               data:{'id':id},
-               url:"{{route('admin.order.cart_remove')}}",
-               dataType: "json",
-              success: function(cartinfo){
-                return cart_content()+cart_details();
-            }
-          });
+            $.ajax({
+                cache: false,
+                type: "GET",
+                data: { 'id': id },
+                url: "{{route('admin.order.cart_remove')}}",
+                dataType: "json",
+                success: function(cartinfo){
+                    cart_content();
+                    cart_details();
+                }
+            });
         }
-   });
-   $(".product_discount").change(function(){
+    });
+
+    // Product Discount
+    $(document).on('change', '.product_discount', function(){
         var id = $(this).data("id");
         var discount = $(this).val();
-          $.ajax({
-           cache: false,
-           type:"GET",
-           data:{'id':id,'discount':discount},
-           url:"{{route('admin.order.product_discount')}}",
-           dataType: "json",
-          success: function(cartinfo){
-            return cart_content()+cart_details();
-          }
+        $.ajax({
+            cache: false,
+            type: "GET",
+            data: { 'id': id, 'discount': discount },
+            url: "{{route('admin.order.product_discount')}}",
+            dataType: "json",
+            success: function(cartinfo){
+                cart_content();
+                cart_details();
+            }
         });
-   });
-    $(".cartclear").click(function(e){
-      $.ajax({
-           cache: false,
-           type:"GET",
-           url:"{{route('admin.order.cart_clear')}}",
-           dataType: "json",
-          success: function(cartinfo){
-            return cart_content()+cart_details();
-          }
-       });
-   });// pshippingfee from total
+    });
+
+    // Cart Clear
+    $(document).on('click', '.cartclear', function(e){
+        $.ajax({
+            cache: false,
+            type: "GET",
+            url: "{{route('admin.order.cart_clear')}}",
+            dataType: "json",
+            success: function(cartinfo){
+                cart_content();
+                cart_details();
+            }
+        });
+    });
+
+    // Shipping Area
     $("#area").on("change", function () {
         var id = $(this).val();
         $.ajax({
@@ -382,7 +509,8 @@
             url: "{{route('admin.order.cart_shipping')}}",
             dataType: "html",
             success: function(cartinfo){
-               return cart_content()+cart_details();
+                cart_content();
+                cart_details();
             }
         });
     });

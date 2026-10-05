@@ -97,7 +97,7 @@
                         </div>
                     </div>
 
-                   
+
                      <form class="">
                         <div class="row mb-3">
                             <div class="col-sm-5"></div>
@@ -203,7 +203,7 @@
                                                                 <p class="mb-0"><span class="text-primary fw-normal">Color:
                                                                     </span>{{ $product->product_color }}</p>
                                                             @endif
-        
+
                                                             @if (isset($product->product_size))
                                                                 <p><span class="text-primary fw-normal">Variant:
                                                                     </span>{{ $product->product_size }}</p>
@@ -224,7 +224,7 @@
                                             <!-- <td>{{ $value->user ? $value->user->name : '' }}</td> -->
                                             <td>
                                                 @if($value->pay_slip_image)
-                                                    <img 
+                                                    <img
                                                         src="{{ asset($value->pay_slip_image) }}"
                                                         width="80"
                                                         style="cursor:pointer"
@@ -238,7 +238,7 @@
                                                     <p>N/A</p>
                                                 @endif
                                             </td>
-                                            
+
                                             <td>{{ $value->order_type }}</td>
                                             <td>৳{{ $value->amount }}</td>
                                             <td>
@@ -248,7 +248,8 @@
                                                     N/A
                                                 @endif
                                             </td>
-                                            <td>৳{{ $value->payment_due_amount }}</td>
+                                            <td>৳{{ $value->amount - $value->paid_partial_payment_amount }}</td>
+                                            {{-- <td>৳{{ $value->payment_due_amount }}</td> --}}
                                             {{-- <td>{{ $value->note ? $value->note : 'N/A' }}</td> --}}
                                             <td>{{ $value->status ? $value->status->name : '' }}</td>
 

@@ -485,6 +485,7 @@ Route::group(['namespace' => 'Admin', 'middleware' => ['auth', 'lock', 'check_re
     Route::get('order/create', [OrderController::class, 'order_create'])->name('admin.order.create');
     Route::post('order/store', [OrderController::class, 'order_store'])->name('admin.order.store');
     Route::get('order/cart-add', [OrderController::class, 'cart_add'])->name('admin.order.cart_add');
+    Route::get('order/product-variants', [OrderController::class, 'get_product_variants'])->name('admin.order.product_variants');
     Route::get('order/cart-content', [OrderController::class, 'cart_content'])->name('admin.order.cart_content');
     Route::get('order/cart-increment', [OrderController::class, 'cart_increment'])->name('admin.order.cart_increment');
     Route::get('order/cart-decrement', [OrderController::class, 'cart_decrement'])->name('admin.order.cart_decrement');
@@ -493,6 +494,7 @@ Route::group(['namespace' => 'Admin', 'middleware' => ['auth', 'lock', 'check_re
     Route::get('order/cart-details', [OrderController::class, 'cart_details'])->name('admin.order.cart_details');
     Route::get('order/cart-shipping', [OrderController::class, 'cart_shipping'])->name('admin.order.cart_shipping');
     Route::get('order/cart-clear', [OrderController::class, 'cart_clear'])->name('admin.order.cart_clear');
+    Route::get('order/cart-update-variant', [OrderController::class, 'cart_update_variant'])->name('admin.order.cart_update_variant');
 
     // Order route
     Route::get('order/{slug}', [OrderController::class, 'index'])->name('admin.orders');
