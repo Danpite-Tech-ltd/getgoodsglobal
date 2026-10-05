@@ -421,13 +421,11 @@ class OrderController extends Controller
                     $orderDetails->save();
 
                     // STOCK UPDATE
-                    $product = Product::find($cart->product_id);
-
-                    $colorDetails = Productcolor::where('product_id', $cart->product_id)
-                        ->where('color_id', $detail->color_id)->first();
+                    // cart_details.color_id = colors.id (e.g. 99 = Red)
+                    // productsizes.color_id = same colors.id → direct match, no lookup needed
                     Productsize::where('product_id', $cart->product_id)
                         ->where('size', $detail->size)
-                        ->where('color_id', $colorDetails->id)
+                        ->where('color_id', $detail->color_id)
                         ->decrement('stock', $detail->quantity);
 
                 }
@@ -633,14 +631,10 @@ class OrderController extends Controller
                     $orderDetails->save();
 
                     // STOCK UPDATE
-                    $product = Product::find($buy->product_id);
-
-                    $colorDetails = Productcolor::where('product_id', $buy->product_id)
-                        ->where('color_id', $detail->color_id)->first();
 
                     Productsize::where('product_id', $buy->product_id)
                         ->where('size', $detail->size)
-                        ->where('color_id', $colorDetails->id)
+                        ->where('color_id', $detail->color_id)
                         ->decrement('stock', $detail->quantity);
 
                 }
