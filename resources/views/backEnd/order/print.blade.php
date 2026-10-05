@@ -9,7 +9,8 @@
 </head>
 <body>
     <style>
-        .customer-invoice {
+        /* Only break BEFORE 2nd+ invoices, not the first one */
+        .customer-invoice + .customer-invoice {
             page-break-before: always;
         }
         body{
@@ -30,7 +31,8 @@
         
         /* Invoice Container Styling */
         .invoice-innter {
-            width: 760px;
+            max-width: 760px;
+            width: 100%;
             margin: 0 auto;
             background: #fff;
             overflow: hidden;
@@ -38,6 +40,7 @@
             padding-top: 30px;
             border: 1px solid #ddd;
             box-shadow: 0 0 10px rgba(0,0,0,0.05);
+            box-sizing: border-box;
         }
         
         /* Header Section */
@@ -279,29 +282,59 @@
         }
 
         @page {
-            margin: 0px;
+            margin: 0;
+            size: A4 portrait;
         }
         
         @media print {
             body {
                 background: #fff;
+                margin: 0;
+                padding: 0;
             }
             .invoice-innter {
-                margin-left: 0 !important;
-                border: none;
-                box-shadow: none;
+                max-width: 100% !important;
+                width: 100% !important;
+                margin: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 12mm 10mm !important;
+                box-sizing: border-box !important;
+            }
+            .container {
+                max-width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .row, .col-sm-12 {
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .customer-invoice {
+                margin: 0 !important;
             }
             .invoice_btn {
                 margin-bottom: 0 !important;
             }
-            td {
-                font-size: 13px;
+            /* flex doesn't work in print — use table layout for payment row */
+            .payment-mode-section {
+                display: table !important;
+                width: 100% !important;
+                border-spacing: 10px 0 !important;
+                table-layout: fixed !important;
             }
-            p {
-                margin: 0;
+            .payment-left,
+            .payment-right {
+                display: table-cell !important;
             }
             header, footer, .no-print, .left-side-menu, .navbar-custom {
                 display: none !important;
+            }
+            tr {
+                page-break-inside: avoid;
+            }
+            .customer-invoice {
+                page-break-inside: avoid;
             }
         }
     </style>
