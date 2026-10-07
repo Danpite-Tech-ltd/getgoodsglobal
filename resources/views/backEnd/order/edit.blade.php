@@ -66,14 +66,6 @@
         padding: 4px 6px;
         height: 32px;
     }
-    .cart-table input.product_discount {
-        height: 32px !important;
-        padding: 4px !important;
-        text-align: center;
-        font-size: 13px;
-        max-width: 80px;
-        margin: 0 auto;
-    }
 </style>
 <link href="{{asset('public/backEnd')}}/assets/libs/select2/css/select2.min.css" rel="stylesheet" type="text/css" />
 <link href="{{asset('public/backEnd')}}/assets/libs/summernote/summernote-lite.min.css" rel="stylesheet" type="text/css" />
@@ -123,13 +115,12 @@
                             <thead>
                               <tr>
                                 <th style="width:7%; text-align: center;">Image</th>
-                                <th style="width:23%;">Name</th>
-                                <th style="width:14%;">Color</th>
-                                <th style="width:14%;">Size</th>
+                                <th style="width:25%;">Name</th>
+                                <th style="width:16%;">Color</th>
+                                <th style="width:16%;">Size</th>
                                 <th style="width:120px; text-align: center;">Quantity</th>
-                                <th style="width:10%; text-align: center;">Sell Price</th>
-                                <th style="width:10%; text-align: center;">Discount</th>
-                                <th style="width:10%; text-align: center;">Sub Total</th>
+                                <th style="width:12%; text-align: center;">Sell Price</th>
+                                <th style="width:12%; text-align: center;">Sub Total</th>
                                 <th style="width:6%; text-align: center;">Action</th>
                               </tr>
                             </thead>
@@ -234,12 +225,11 @@
                         <div class="col-sm-6">
                             <table class="table table-bordered">
                                 <tbody id="cart_details">
-                                    @php
+                                     @php
                                         $subtotal = Cart::instance('pos_shopping')->subtotal();
                                         $subtotal = str_replace(',','',$subtotal);
                                         $subtotal = str_replace('.00', '',$subtotal);
                                         $shipping = Session::get('pos_shipping') ?? 0;
-                                        $total_discount = (float)(Session::get('pos_discount') ?? 0) + (float)(Session::get('product_discount') ?? 0);
                                     @endphp
                                     <tr>
                                         <td>Sub Total</td>
@@ -250,12 +240,8 @@
                                         <td>{{$shipping}}</td>
                                     </tr>
                                     <tr>
-                                        <td>Discount</td>
-                                        <td>{{$total_discount}}</td>
-                                    </tr>
-                                    <tr>
                                         <td>Total</td>
-                                        <td>{{($subtotal + $shipping)- $total_discount}}</td>
+                                        <td>{{(float)$subtotal + (float)$shipping}}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -368,6 +354,10 @@
         } catch(e) {
             variants = {};
         }
+
+        // Update hidden color_name and color_image inputs so form submission is correct
+        row.find('.input_color_name').val(colorName);
+        row.find('.input_color_image').val(colorImage);
 
         var sizeSelect = row.find('.cart_size');
         sizeSelect.empty().append('<option value="">Select Size</option>');
@@ -492,23 +482,6 @@
                 }
             });
         }
-    });
-
-    // Product Discount
-    $(document).on('change', '.product_discount', function(){
-        var id = $(this).data("id");
-        var discount = $(this).val();
-        $.ajax({
-            cache: false,
-            type: "GET",
-            data: { 'id': id, 'discount': discount },
-            url: "{{route('admin.order.product_discount')}}",
-            dataType: "json",
-            success: function(cartinfo){
-                cart_content();
-                cart_details();
-            }
-        });
     });
 
     // Cart Clear

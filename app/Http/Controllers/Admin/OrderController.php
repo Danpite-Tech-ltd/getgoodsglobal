@@ -778,10 +778,14 @@ class OrderController extends Controller
             $order_details->order_id         =   $order->id;
             $order_details->product_id       =   $cart->id;
             $order_details->product_name     =   $cart->name;
-            $order_details->purchase_price   =   $cart->options->purchase_price;
-            $order_details->product_discount =   $cart->options->product_discount;
+            $order_details->purchase_price   =   $cart->options->purchase_price ?? 0;
+            $order_details->product_discount =   $cart->options->product_discount ?? 0;
             $order_details->sale_price       =   $cart->price;
+            $order_details->regular_price    =   $cart->options->regular_price ?? $cart->price;
             $order_details->qty              =   $cart->qty;
+            $order_details->product_color    =   $cart->options->product_color ?? null;
+            $order_details->product_color_image = $cart->options->product_color_image ?? null;
+            $order_details->product_size     =   $cart->options->product_size ?? null;
             $order_details->save();
         }
         Cart::instance('pos_shopping')->destroy();
@@ -930,6 +934,11 @@ class OrderController extends Controller
             $price = (float)$request->size_price;
         }
 
+        $regular_price = (float)($product->old_price ?: $price);
+        if (isset($firstSize) && $firstSize && $firstSize->RegularPrice !== null && (float)$firstSize->RegularPrice > 0) {
+            $regular_price = (float)$firstSize->RegularPrice;
+        }
+
         $image = $product_color_image ?: ($product->image->image ?? '');
 
         $cartinfo = Cart::instance('pos_shopping')->add([
@@ -941,6 +950,7 @@ class OrderController extends Controller
                 'slug'                => $product->slug,
                 'image'               => $image,
                 'old_price'           => $product->old_price,
+                'regular_price'       => $regular_price,
                 'purchase_price'      => $purchase_price,
                 'product_discount'    => 0,
                 'product_color'       => $product_color,
@@ -964,7 +974,7 @@ class OrderController extends Controller
             $price = (float)$request->size_price;
         }
 
-        $options = $cart->options ? $cart->options->toArray() : [];
+        $options = $cart->options ? (is_array($cart->options) ? $cart->options : $cart->options->toArray()) : [];
 
         if ($request->has('color_name')) {
             $options['product_color'] = $request->color_name;
@@ -980,9 +990,20 @@ class OrderController extends Controller
         }
         if ($request->has('size')) {
             $options['product_size'] = $request->size;
+            $psQuery = Productsize::where('product_id', $cart->id)->where('size', $request->size);
+            if (!empty($options['color_id'])) {
+                $psQuery->where('color_id', $options['color_id']);
+            }
+            $ps = $psQuery->first();
+            if ($ps && $ps->RegularPrice) {
+                $options['regular_price'] = (float)$ps->RegularPrice;
+            }
         }
         if ($request->filled('purchase_price')) {
             $options['purchase_price'] = (float)$request->purchase_price;
+        }
+        if ($request->filled('regular_price')) {
+            $options['regular_price'] = (float)$request->regular_price;
         }
 
         Cart::instance('pos_shopping')->update($request->rowId, [
@@ -1004,11 +1025,6 @@ class OrderController extends Controller
     }
     public function cart_details(){
         $cartinfo = Cart::instance('pos_shopping')->content();
-        $discount = 0;
-        foreach($cartinfo as $cart){
-            $discount += $cart->options->product_discount*$cart->qty;
-        }
-        Session::put('product_discount',$discount);
         return view('backEnd.order.cart_details',compact('cartinfo'));
     }
     public function cart_increment(Request $request){
@@ -1058,18 +1074,20 @@ class OrderController extends Controller
         return response()->json($cartinfo);
     }
     public function product_discount(Request $request){
-        $discount = $request->discount;
-        $cart = Cart::instance('pos_shopping')->content()->where('rowId', $request->id)->first();
-        $cartinfo = Cart::instance('pos_shopping')->update($request->id, [
-            'options' => [
-                'slug' => $cart->options->slug,
-                'image' => $cart->options->image,
-                'old_price' => $cart->options->old_price,
-                'purchase_price' => $cart->options->purchase_price,
-                'product_discount' => $request->discount,
-            ],
-        ]);
-        return response()->json($cartinfo);
+        $discount = (float)($request->discount ?? 0);
+        $cart = Cart::instance('pos_shopping')->get($request->id);
+        if (!$cart) {
+            $cart = Cart::instance('pos_shopping')->content()->where('rowId', $request->id)->first();
+        }
+        if ($cart) {
+            $options = $cart->options ? (is_array($cart->options) ? $cart->options : $cart->options->toArray()) : [];
+            $options['product_discount'] = $discount;
+            $cartinfo = Cart::instance('pos_shopping')->update($request->id, [
+                'options' => $options,
+            ]);
+            return response()->json($cartinfo);
+        }
+        return response()->json(['status' => 'error', 'message' => 'Cart item not found'], 404);
     }
     public function cart_shipping(Request $request){
          $shipping = ShippingCharge::where(['status'=>1,'id'=>$request->id])->first()->amount;
@@ -1090,27 +1108,43 @@ class OrderController extends Controller
         $order = Order::where('invoice_id',$invoice_id)->first();
         Cart::instance('pos_shopping')->destroy();
         $shippinginfo  = Shipping::where('order_id',$order->id)->first();
-        // Store only product-level discount in session (NOT the order-level discount to avoid double counting)
-        Session::put('product_discount', 0);
-        Session::put('pos_discount', 0);
+        Session::forget('product_discount');
+        Session::forget('pos_discount');
         Session::put('pos_shipping', $order->shipping_charge);
         $orderdetails = OrderDetails::where('order_id',$order->id)->get();
         foreach($orderdetails as $ordetails){
             // Resolve color_id from Productsize for proper stock tracking
             $colorId = null;
-            if ($ordetails->product_color && $ordetails->product_size) {
-                $ps = Productsize::where('product_id', $ordetails->product_id)
-                    ->where('size', $ordetails->product_size)
-                    ->first();
-                $colorId = $ps ? $ps->color_id : null;
+            $regularPrice = $ordetails->regular_price;
+            if ($ordetails->product_size) {
+                $psQuery = Productsize::where('product_id', $ordetails->product_id)
+                    ->where('size', $ordetails->product_size);
+                $ps = $psQuery->first();
+                if ($ps) {
+                    $colorId = $ps->color_id;
+                    if (!$regularPrice && $ps->RegularPrice) {
+                        $regularPrice = (float)$ps->RegularPrice;
+                    }
+                }
             }
+            if (!$regularPrice) {
+                $prod = Product::find($ordetails->product_id);
+                $regularPrice = $prod && $prod->old_price ? (float)$prod->old_price : (float)$ordetails->sale_price;
+            }
+
+            $prodImage = Product::find($ordetails->product_id)?->image?->image ?? '';
+            $displayImage = $ordetails->product_color_image ?: $prodImage;
+
             Cart::instance('pos_shopping')->add([
                 'id'    => $ordetails->product_id,
                 'name'  => $ordetails->product_name,
                 'qty'   => $ordetails->qty,
                 'price' => $ordetails->sale_price,
                 'options' => [
-                    'image'               => $ordetails->product_color_image ?: '',
+                    'slug'                => Product::where('id', $ordetails->product_id)->value('slug') ?? '',
+                    'image'               => $displayImage,
+                    'old_price'           => (float)$regularPrice,
+                    'regular_price'       => (float)$regularPrice,
                     'purchase_price'      => $ordetails->purchase_price,
                     'product_discount'    => $ordetails->product_discount ?? 0,
                     'details_id'          => $ordetails->id,
@@ -1166,9 +1200,11 @@ class OrderController extends Controller
     }
 
     // ── STEP 2: Stock limit check on new cart items ──
+    $cartItemsPostCheck = $request->input('cart_items', []);
     foreach (Cart::instance('pos_shopping')->content() as $cart) {
-        $sizeName = $cart->options->product_size ?? null;
-        $colorId  = $cart->options->color_id ?? null;
+        $postRowCheck = $cartItemsPostCheck[$cart->rowId] ?? [];
+        $sizeName = !empty($postRowCheck['size']) ? $postRowCheck['size'] : ($cart->options->product_size ?? null);
+        $colorId  = !empty($postRowCheck['color_id']) ? $postRowCheck['color_id'] : ($cart->options->color_id ?? null);
         if ($sizeName) {
             $sqQuery = Productsize::where('product_id', $cart->id)->where('size', $sizeName);
             if ($colorId) {
@@ -1195,14 +1231,6 @@ class OrderController extends Controller
     // ── STEP 3: Calculate amounts ──
     $subtotal = Cart::instance('pos_shopping')->subtotal();
     $subtotal = str_replace([',', '.00'], '', $subtotal);
-
-    // product-level discount (per-unit × qty, summed)
-    $productDiscount = 0;
-    foreach (Cart::instance('pos_shopping')->content() as $cart) {
-        $productDiscount += ($cart->options->product_discount ?? 0) * $cart->qty;
-    }
-    $posDiscount  = (float)(Session::get('pos_discount') ?? 0);
-    $discount     = $posDiscount + $productDiscount;
     $shippingfee  = ShippingCharge::find($request->area);
 
     // ── STEP 4: Handle customer ──
@@ -1223,10 +1251,10 @@ class OrderController extends Controller
     }
 
     // ── STEP 5: Update Order ──
-    $newAmount               = ((float)$subtotal + $shippingfee->amount) - $discount;
+    $newAmount               = (float)$subtotal + $shippingfee->amount;
     $alreadyPaid             = (float)($order->paid_partial_payment_amount ?? 0);
     $order->amount           = $newAmount;
-    $order->discount         = $discount ?: 0;
+    $order->discount         = 0;
     $order->shipping_charge  = $shippingfee->amount;
     $order->customer_id      = $customer_id;
     $order->note             = $request->note;
@@ -1257,37 +1285,129 @@ class OrderController extends Controller
     // ── STEP 8: Delete removed items ──
     $cartRowIds = [];
     foreach (Cart::instance('pos_shopping')->content() as $cart) {
-        $cartRowIds[] = $cart->options->details_id ?? null;
+        if (!empty($cart->options->details_id)) {
+            $cartRowIds[] = $cart->options->details_id;
+        }
     }
     OrderDetails::where('order_id', $order->id)
         ->whereNotIn('id', array_filter($cartRowIds))
         ->delete();
 
     // ── STEP 9: Upsert cart items + deduct NEW stock ──
-    foreach (Cart::instance('pos_shopping')->content() as $cart) {
-        $exits = OrderDetails::where('id', $cart->options->details_id)->first();
+    $cartItemsPost = $request->input('cart_items', []);
 
-        if ($exits) {
-            $order_details = OrderDetails::find($exits->id);
-        } else {
+    foreach (Cart::instance('pos_shopping')->content() as $cart) {
+        $detailsId = $cart->options->details_id ?? null;
+        $order_details = null;
+        if ($detailsId) {
+            $order_details = OrderDetails::where('id', $detailsId)->where('order_id', $order->id)->first();
+        }
+
+        if (!$order_details) {
             $order_details             = new OrderDetails();
             $order_details->order_id   = $order->id;
             $order_details->product_id = $cart->id;
         }
 
+        // Get POST form data for this cart row (submitted from selects in cart table)
+        $postRow = $cartItemsPost[$cart->rowId] ?? [];
+
+        // Resolve color/size from POST first (most up-to-date), then cart session, then existing order_details
+        $postColorId   = $postRow['color_id']   ?? null;
+        $postColorName = $postRow['color_name']  ?? null;
+        $postColorImg  = $postRow['color_image'] ?? null;
+        $postSize      = $postRow['size']        ?? null;
+
+        // color_name: POST hidden input -> cart session -> existing order_details
+        $productColor = (!empty($postColorName))
+            ? $postColorName
+            : (!empty($cart->options->product_color)
+                ? $cart->options->product_color
+                : ($order_details->product_color ?? null));
+
+        // color_image: POST hidden input -> cart session -> existing order_details
+        $productColorImage = (!empty($postColorImg))
+            ? $postColorImg
+            : (!empty($cart->options->product_color_image)
+                ? $cart->options->product_color_image
+                : ($order_details->product_color_image ?? null));
+
+        // size: POST select -> cart session -> existing order_details
+        $productSize = (!empty($postSize))
+            ? $postSize
+            : (!empty($cart->options->product_size)
+                ? $cart->options->product_size
+                : ($order_details->product_size ?? null));
+
+        // color_id: POST select -> cart session
+        $resolvedColorId = (!empty($postColorId))
+            ? $postColorId
+            : ($cart->options->color_id ?? null);
+
+        // If we have color_id from POST but no color_name, resolve it from DB
+        if (!empty($resolvedColorId) && empty($productColor)) {
+            $colorObj = \App\Models\Color::find($resolvedColorId);
+            if ($colorObj) {
+                $productColor = $colorObj->colorName ?? $colorObj->color ?? null;
+            }
+        }
+
+        // If color_image is still empty but color_id is present, try Productcolor
+        if (empty($productColorImage) && !empty($resolvedColorId)) {
+            $pColor = \App\Models\Productcolor::where('product_id', $cart->id)->where('color_id', $resolvedColorId)->first();
+            if ($pColor && $pColor->Image) {
+                $productColorImage = $pColor->Image;
+            }
+        }
+
+        // If color_image is still empty but product_color is present, try finding Image from Productcolor
+        if (empty($productColorImage) && !empty($productColor)) {
+            $colorRecord = \App\Models\Color::where('colorName', $productColor)->first();
+            if ($colorRecord) {
+                $pColor = \App\Models\Productcolor::where('product_id', $cart->id)->where('color_id', $colorRecord->id)->first();
+                if ($pColor && $pColor->Image) {
+                    $productColorImage = $pColor->Image;
+                }
+            }
+        }
+
+        // Determine regular_price: cart options -> existing order_details -> Productsize -> Product
+        $regularPrice = $cart->options->regular_price ?? null;
+        if (!$regularPrice && !empty($order_details->regular_price)) {
+            $regularPrice = $order_details->regular_price;
+        }
+        if (!$regularPrice) {
+            $sizeName = $productSize;
+            if ($sizeName) {
+                $psQuery = Productsize::where('product_id', $cart->id)->where('size', $sizeName);
+                if (!empty($resolvedColorId)) {
+                    $psQuery->where('color_id', $resolvedColorId);
+                }
+                $ps = $psQuery->first();
+                if ($ps && $ps->RegularPrice) {
+                    $regularPrice = (float)$ps->RegularPrice;
+                }
+            }
+        }
+        if (!$regularPrice) {
+            $oldPrice = Product::where('id', $cart->id)->value('old_price');
+            $regularPrice = $oldPrice ? (float)$oldPrice : (float)$cart->price;
+        }
+
         $order_details->product_name        = $cart->name;
-        $order_details->purchase_price      = $cart->options->purchase_price;
-        $order_details->product_discount    = $cart->options->product_discount ?? 0;
+        $order_details->purchase_price      = $cart->options->purchase_price ?? ($order_details->purchase_price ?? 0);
+        $order_details->product_discount    = 0;
         $order_details->sale_price          = $cart->price;
+        $order_details->regular_price       = (float)$regularPrice;
         $order_details->qty                 = $cart->qty;
-        $order_details->product_color       = $cart->options->product_color ?? null;
-        $order_details->product_color_image = $cart->options->product_color_image ?? null;
-        $order_details->product_size        = $cart->options->product_size ?? null;
+        $order_details->product_color       = $productColor;
+        $order_details->product_color_image = $productColorImage;
+        $order_details->product_size        = $productSize;
         $order_details->save();
 
         // Deduct stock for the new quantities
-        $sizeName = $cart->options->product_size ?? null;
-        $colorId  = $cart->options->color_id ?? null;
+        $sizeName = $productSize;
+        $colorId  = $resolvedColorId;
         if ($sizeName) {
             $deductQuery = Productsize::where('product_id', $cart->id)->where('size', $sizeName);
             if ($colorId) {
