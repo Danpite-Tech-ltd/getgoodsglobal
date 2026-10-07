@@ -287,14 +287,14 @@ class OrderController extends Controller
 
         if($request->order_status == 5){
             $orders = Order::whereIn('id', $request->input('order_ids'))->get();
-            foreach($orders as $order){
-                $orders_details = OrderDetails::select('id','order_id','product_id')->where('order_id',$order->id)->get();
-                foreach($orders_details as $order_details){
-                    $product = Product::select('id','stock')->find($order_details->product_id);
-                    $product->stock -= $order_details->qty;
-                    $product->save();
-                }
-            }
+            // foreach($orders as $order){
+            //     $orders_details = OrderDetails::select('id','order_id','product_id')->where('order_id',$order->id)->get();
+            //     foreach($orders_details as $order_details){
+            //         $product = Product::select('id','stock')->find($order_details->product_id);
+            //         $product->stock -= $order_details->qty;
+            //         $product->save();
+            //     }
+            // }
         }
         
         // Stock restore for: Cancel (26), Return (8), Returned (17), Refund (23)
@@ -322,10 +322,10 @@ class OrderController extends Controller
             $user = Shipping::where('order_id', $request->input('order_ids'))->first();
             $order = Order::where('id', $request->input('order_ids'))->with('orderdetails')->first();
 
-            foreach ($order->orderdetails as $detail) {
-                Productsize::where('size', $detail->product_size)
-                    ->increment('stock', $detail->qty);
-            }
+            // foreach ($order->orderdetails as $detail) {
+            //     Productsize::where('size', $detail->product_size)
+            //         ->increment('stock', $detail->qty);
+            // }
 
             $generalsetting = GeneralSetting::where('status',1)->first();
             $sms_gateway = SmsGateway::where('status',1)->first();
