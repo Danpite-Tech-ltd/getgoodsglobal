@@ -193,7 +193,8 @@
                                                 @foreach ($value->orderdetails as $product)
                                                     <div class="d-flex">
                                                         <div>
-                                                            <img src="{{ asset(App\Models\Productimage::where('product_id', $product->product_id)->first()->image) }}" alt="" width="50">
+                                                            <!-- <img src="{{ asset(App\Models\Productimage::where('product_id', $product->product_id)->first()->image) }}" alt="" width="50"> -->
+                                                            <img src="{{ asset($product->product_color_image) }}" alt="" width="50">
                                                         </div>
                                                         <div class="mx-2">
                                                             <p class="mb-2">{{ $product->product_name }} <br>

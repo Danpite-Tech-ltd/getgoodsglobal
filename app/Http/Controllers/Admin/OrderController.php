@@ -957,6 +957,8 @@ class OrderController extends Controller
                 'product_color_image' => $product_color_image,
                 'color_id'            => $color_id,
                 'product_size'        => $product_size,
+                // Unique key so the same product can be added multiple times as separate rows
+                '_uid'                => uniqid('', true),
             ],
         ]);
         return response()->json(compact('cartinfo'));
