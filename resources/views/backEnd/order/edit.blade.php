@@ -238,8 +238,8 @@
                                         $subtotal = Cart::instance('pos_shopping')->subtotal();
                                         $subtotal = str_replace(',','',$subtotal);
                                         $subtotal = str_replace('.00', '',$subtotal);
-                                        $shipping = Session::get('pos_shipping');
-                                        $total_discount = Session::get('pos_discount')+Session::get('product_discount') + $order->discount;
+                                        $shipping = Session::get('pos_shipping') ?? 0;
+                                        $total_discount = (float)(Session::get('pos_discount') ?? 0) + (float)(Session::get('product_discount') ?? 0);
                                     @endphp
                                     <tr>
                                         <td>Sub Total</td>
@@ -422,13 +422,38 @@
                 type: "GET",
                 url: "{{route('admin.order.cart_increment')}}",
                 dataType: "json",
-                success: function(cartinfo){
+                success: function(response){
+                    if (response && response.status === 'out_of_stock') {
+                        showStockAlert('পর্যাপ্ত Stock নেই! Available: ' + response.stock + ' টি');
+                        return;
+                    }
+                    if (response && response.status === 'error') {
+                        showStockAlert(response.message);
+                        return;
+                    }
                     cart_content();
                     cart_details();
+                },
+                error: function(xhr){
+                    var res = xhr.responseJSON;
+                    if (res && res.status === 'out_of_stock') {
+                        showStockAlert('পর্যাপ্ত Stock নেই! Available: ' + res.stock + ' টি');
+                    }
                 }
             });
         }
     });
+
+    function showStockAlert(msg) {
+        // Remove old alert if any
+        $('#stock-alert-box').remove();
+        var html = '<div id="stock-alert-box" class="alert alert-danger alert-dismissible fade show" role="alert" style="position:fixed;top:20px;right:20px;z-index:9999;min-width:300px;">'
+            + '<strong><i class="fa fa-exclamation-triangle"></i> Stock সীমা!</strong> ' + msg
+            + '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>'
+            + '</div>';
+        $('body').append(html);
+        setTimeout(function(){ $('#stock-alert-box').fadeOut(400, function(){ $(this).remove(); }); }, 4000);
+    }
 
     // Quantity Decrement
     $(document).on('click', '.cart_decrement', function(e) {
