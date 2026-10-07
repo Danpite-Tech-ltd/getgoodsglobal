@@ -253,10 +253,25 @@ class OrderController extends Controller
     }
 
     public function destroy(Request $request){
-        $order = Order::where('id',$request->id)->delete();
-        $order_details = OrderDetails::where('order_id',$request->id)->delete();
-        $shipping = Shipping::where('order_id',$request->id)->delete();
-        $payment = Payment::where('order_id',$request->id)->delete();
+        // Restore stock before deleting
+        $details = OrderDetails::where('order_id', $request->id)->get();
+        foreach ($details as $detail) {
+            if ($detail->product_size) {
+                $q = Productsize::where('product_id', $detail->product_id)
+                    ->where('size', $detail->product_size);
+                $ps = Productsize::where('product_id', $detail->product_id)
+                    ->where('size', $detail->product_size)->first();
+                if ($ps && $ps->color_id) {
+                    $q->where('color_id', $ps->color_id);
+                }
+                $q->increment('stock', $detail->qty);
+            }
+        }
+
+        Order::where('id', $request->id)->delete();
+        OrderDetails::where('order_id', $request->id)->delete();
+        Shipping::where('order_id', $request->id)->delete();
+        Payment::where('order_id', $request->id)->delete();
         Toastr::success('Success','Order delete success successfully');
         return redirect()->back();
     }
@@ -282,60 +297,24 @@ class OrderController extends Controller
             }
         }
         
-        if($request->order_status == 26){
-            $user = Shipping::where('order_id', $request->input('order_ids'))->first();
-            $order = Order::where('id', $request->input('order_ids'))->with('orderdetails')->first();
-
-            
-            foreach ($order->orderdetails as $detail) {
-                Productsize::where('size', $detail->product_size)
-                    ->increment('stock', $detail->qty);
-            }
-            
-            
-            // $generalsetting = GeneralSetting::where('status',1)->first();
-            // $sms_gateway = SmsGateway::where('status',1)->first();
-            
-            
-            // $url = $sms_gateway->url;
-            // $api_key = $sms_gateway->api_key;
-            // $senderid = $sms_gateway->serderid;
-            // $number = $user->phone;
-            // $message = "Dear {$user->name}, we’re unable to process your order #{$order->invoice_id} at the moment. For assistance, please contact us.\r\n{$generalsetting->name}\r\n" . env('APP_URL');
-         
-            // $data = [
-            //     "api_key" => $api_key,
-            //     "senderid" => $senderid,
-            //     "number" => $number,
-            //     "message" => $message
-            // ];
-            // $ch = curl_init();
-            // curl_setopt($ch, CURLOPT_URL, $url);
-            // curl_setopt($ch, CURLOPT_POST, 1);
-            // curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-            // curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            // curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            // $response = curl_exec($ch);
-            // curl_close($ch);
-        }
-        
-        if($request->order_status == 8){
-            $user = Shipping::where('order_id', $request->input('order_ids'))->first();
-            $order = Order::where('id', $request->input('order_ids'))->with('orderdetails')->first();
-
-            foreach ($order->orderdetails as $detail) {
-                Productsize::where('size', $detail->product_size)
-                    ->increment('stock', $detail->qty);
-            }
-        }
-        
-        if($request->order_status == 17){
-            $user = Shipping::where('order_id', $request->input('order_ids'))->first();
-            $order = Order::where('id', $request->input('order_ids'))->with('orderdetails')->first();
-
-            foreach ($order->orderdetails as $detail) {
-                Productsize::where('size', $detail->product_size)
-                    ->increment('stock', $detail->qty);
+        // Stock restore for: Cancel (26), Return (8), Returned (17), Refund (23)
+        if (in_array($request->order_status, [26, 8, 17, 23])) {
+            $orderIds = (array) $request->input('order_ids');
+            $affectedOrders = Order::whereIn('id', $orderIds)->with('orderdetails')->get();
+            foreach ($affectedOrders as $ord) {
+                foreach ($ord->orderdetails as $detail) {
+                    if ($detail->product_size) {
+                        $q = Productsize::where('product_id', $detail->product_id)
+                            ->where('size', $detail->product_size);
+                        // Match color_id for exact variant
+                        $ps = Productsize::where('product_id', $detail->product_id)
+                            ->where('size', $detail->product_size)->first();
+                        if ($ps && $ps->color_id) {
+                            $q->where('color_id', $ps->color_id);
+                        }
+                        $q->increment('stock', $detail->qty);
+                    }
+                }
             }
         }
 
@@ -411,10 +390,25 @@ class OrderController extends Controller
     public function bulk_destroy(Request $request){
         $orders_id = $request->order_ids;
         foreach($orders_id as $order_id){
-            $order = Order::where('id',$order_id)->delete();
-            $order_details = OrderDetails::where('order_id',$order_id)->delete();
-            $shipping = Shipping::where('order_id',$order_id)->delete();
-            $payment = Payment::where('order_id',$order_id)->delete();
+            // Restore stock before deleting
+            $details = OrderDetails::where('order_id', $order_id)->get();
+            foreach ($details as $detail) {
+                if ($detail->product_size) {
+                    $q = Productsize::where('product_id', $detail->product_id)
+                        ->where('size', $detail->product_size);
+                    $ps = Productsize::where('product_id', $detail->product_id)
+                        ->where('size', $detail->product_size)->first();
+                    if ($ps && $ps->color_id) {
+                        $q->where('color_id', $ps->color_id);
+                    }
+                    $q->increment('stock', $detail->qty);
+                }
+            }
+
+            Order::where('id', $order_id)->delete();
+            OrderDetails::where('order_id', $order_id)->delete();
+            Shipping::where('order_id', $order_id)->delete();
+            Payment::where('order_id', $order_id)->delete();
         }
         return response()->json(['status'=>'success','message'=>'Order delete successfully']);
     }
