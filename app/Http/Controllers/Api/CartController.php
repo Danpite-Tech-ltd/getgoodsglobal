@@ -195,6 +195,22 @@ class CartController extends Controller
                         'message' => 'Invalid color'
                     ], 400);
                 }
+
+                // Color-wise size data for price
+                $colorSizeData = Productsize::where('product_id', $product->id)
+                    ->where('color_id', $detail['color_id'])
+                    ->where('size', $detail['size'])
+                    ->first();
+
+                if (!$colorSizeData && $sizeData) {
+                    $colorSizeData = Productsize::where('product_id', $product->id)
+                        ->where('color_id', $detail['color_id'])
+                        ->where('size_id', $sizeData->size_id)
+                        ->first();
+                }
+
+                $priceSize = $colorSizeData ?: $sizeData;
+
                 //  same size + color already exists
                 $cartDetailQuery = CartDetails::where('user_id', $customer->id)
                     ->where('cart_id', $cart->id)
@@ -204,7 +220,6 @@ class CartController extends Controller
                 if ($cartDetailQuery->exists()) {
                     $cartDetail = $cartDetailQuery->first();
                     $cartDetail->quantity = $detail['quantity'];
-                    $cartDetail->save();
                 } else {
                     $cartDetail = new CartDetails();
                     $cartDetail->cart_id = $cart->id;
@@ -215,64 +230,60 @@ class CartController extends Controller
                     $cartDetail->color = $productColor->color;
                     $cartDetail->color_image = $productColor->Image;
                     $cartDetail->quantity = $detail['quantity'];
-
-                    // Price set
-                    if ($product->order_by == 1 && isset($validated['total_quantity'])) {
-                        $total_quantity = $validated['total_quantity'];
-
-                        $bulkqty = BulkQuantity::where('product_id', $product->id)
-                            ->where('min_qty', '<=', $total_quantity)
-                            ->where('max_qty', '>=', $total_quantity)
-                            ->first();
-
-                        $price = $bulkqty ? $bulkqty->price : $sizeData->SalePrice;
-
-
-                        if (
-                            $product->topsale == 1 &&
-                            Carbon::today()->between(
-                                Carbon::parse($setting->flash_sale_start_date),
-                                Carbon::parse($setting->flash_sale_end_date)
-                            )
-                        ) {
-                            $price -= (($price * $setting->flash_sale_percentage) / 100);
-                        }
-
-                        $cartDetail->price = round($price);
-                        $cartDetail->regular_price = $bulkqty ? $bulkqty->price : $sizeData->SalePrice;
-
-                    } else {
-                        // $cartDetail->price = $sizeData->SalePrice;
-                        if (
-                            $product->topsale == 1 &&
-                            $today->between(
-                                Carbon::parse($setting->flash_sale_start_date),
-                                Carbon::parse($setting->flash_sale_end_date)
-                            )
-                        ) {
-
-                            $salePrice = $sizeData->RegularPrice;
-                            $discountPercentage = $setting->flash_sale_percentage;
-
-                            $discountAmount = (($salePrice * $discountPercentage) / 100);
-                            $finalPrice = $salePrice - $discountAmount;
-
-                            $cartDetail->price = round($finalPrice);
-                            $cartDetail->regular_price = $sizeData->RegularPrice;
-
-                        } else {
-                            $cartDetail->price = $sizeData->SalePrice;
-                            $cartDetail->regular_price = $sizeData->RegularPrice;
-                        }
-                    }
-
-                    $cartDetail->save();
                 }
 
+                // Price set
+                if ($product->order_by == 1 && isset($validated['total_quantity'])) {
+                    $total_quantity = $validated['total_quantity'];
+
+                    $bulkqty = BulkQuantity::where('product_id', $product->id)
+                        ->where('min_qty', '<=', $total_quantity)
+                        ->where('max_qty', '>=', $total_quantity)
+                        ->first();
+
+                    $price = $bulkqty ? $bulkqty->price : $priceSize->SalePrice;
+
+
+                    if (
+                        $product->topsale == 1 &&
+                        Carbon::today()->between(
+                            Carbon::parse($setting->flash_sale_start_date),
+                            Carbon::parse($setting->flash_sale_end_date)
+                        )
+                    ) {
+                        $price -= (($price * $setting->flash_sale_percentage) / 100);
+                    }
+
+                    $cartDetail->price = round($price);
+                    $cartDetail->regular_price = $bulkqty ? $bulkqty->price : $priceSize->SalePrice;
+
+                } else {
+                    if (
+                        $product->topsale == 1 &&
+                        $today->between(
+                            Carbon::parse($setting->flash_sale_start_date),
+                            Carbon::parse($setting->flash_sale_end_date)
+                        )
+                    ) {
+
+                        $salePrice = $priceSize->RegularPrice;
+                        $discountPercentage = $setting->flash_sale_percentage;
+
+                        $discountAmount = (($salePrice * $discountPercentage) / 100);
+                        $finalPrice = $salePrice - $discountAmount;
+
+                        $cartDetail->price = round($finalPrice);
+                        $cartDetail->regular_price = $priceSize->RegularPrice;
+
+                    } else {
+                        $cartDetail->price = $priceSize->SalePrice;
+                        $cartDetail->regular_price = $priceSize->RegularPrice;
+                    }
+                }
+
+                $cartDetail->save();
+
                 $savedDetails[] = $cartDetail;
-
-
-
             }
 
 
@@ -394,8 +405,15 @@ class CartController extends Controller
                     $discount['final_price'] += $detail->quantity * $detail->price;
 
                     $sizeData = Productsize::where('product_id', $detail->product_id)
+                        ->where('color_id', $detail->color_id)
                         ->where('size', $detail->size)
                         ->first();
+
+                    if (!$sizeData) {
+                        $sizeData = Productsize::where('product_id', $detail->product_id)
+                            ->where('size', $detail->size)
+                            ->first();
+                    }
 
                     $detail->stock = $sizeData ? $sizeData->stock : 0;
                 }
