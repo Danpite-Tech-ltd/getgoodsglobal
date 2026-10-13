@@ -84,17 +84,6 @@ class BuyController extends Controller
 
             foreach ($validated['buy_details'] as $detail) {
 
-                // Validate size
-                $sizeData = Productsize::where('product_id', $product->id)
-                    ->where('size', $detail['size'])
-                    ->first();
-                if (!$sizeData) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'Invalid size: ' . $detail['size']
-                    ], 400);
-                }
-
                 // Validate color
                 $productColor = Productcolor::where('product_id', $product->id)
                     ->where('color_id', $detail['color_id'])
@@ -103,6 +92,18 @@ class BuyController extends Controller
                     return response()->json([
                         'status' => 'error',
                         'message' => 'Invalid color'
+                    ], 400);
+                }
+
+                // Validate size (checking product, color and size)
+                $sizeData = Productsize::where('product_id', $product->id)
+                    ->where('color_id', $detail['color_id'])
+                    ->where('size', $detail['size'])
+                    ->first();
+                if (!$sizeData) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Invalid size: ' . $detail['size']
                     ], 400);
                 }
                 //  same size + color already exists
@@ -114,7 +115,6 @@ class BuyController extends Controller
                 if ($buyDetailQuery->exists()) {
                     $buyDetail = $buyDetailQuery->first();
                     $buyDetail->quantity = $detail['quantity'];
-                    $buyDetail->save();
                 } else {
                     $buyDetail = new BuyDetail();
                     $buyDetail->buy_id = $buy->id;
@@ -125,65 +125,62 @@ class BuyController extends Controller
                     $buyDetail->color = $productColor->color;
                     $buyDetail->color_image = $productColor->Image;
                     $buyDetail->quantity = $detail['quantity'];
-
-                    // Price set
-                    if ($product->order_by == 1 && isset($validated['total_quantity'])) {
-                        $total_quantity = $validated['total_quantity'];
-
-                        $bulkqty = BulkQuantity::where('product_id', $product->id)
-                            ->where('min_qty', '<=', $total_quantity)
-                            ->where('max_qty', '>=', $total_quantity)
-                            ->first();
-
-                        $price = $bulkqty ? $bulkqty->price : $sizeData->SalePrice;
-
-
-                        if (
-                            $product->topsale == 1 &&
-                            Carbon::today()->between(
-                                Carbon::parse($setting->flash_sale_start_date),
-                                Carbon::parse($setting->flash_sale_end_date)
-                            )
-                        ) {
-                            $price -= (($price * $setting->flash_sale_percentage) / 100);
-                        }
-
-                        $buyDetail->price = round($price);
-                        $buyDetail->regular_price = $bulkqty ? $bulkqty->price : $sizeData->SalePrice;
-
-                    } else {
-
-                        if (
-                            $product->topsale == 1 &&
-                            $today->between(
-                                Carbon::parse($setting->flash_sale_start_date),
-                                Carbon::parse($setting->flash_sale_end_date)
-                            )
-                        ) {
-
-                            $salePrice = $sizeData->RegularPrice;
-                            $discountPercentage = $setting->flash_sale_percentage;
-
-                            $discountAmount = (($salePrice * $discountPercentage) / 100);
-                            $finalPrice = $salePrice - $discountAmount;
-
-                            $buyDetail->price = round($finalPrice);
-                            $buyDetail->regular_price = $sizeData->RegularPrice;
-
-                        } else {
-                            $buyDetail->price = $sizeData->SalePrice;
-                            $buyDetail->regular_price = $sizeData->RegularPrice;
-                        }
-
-                    }
-
-                    $buyDetail->save();
                 }
 
+                // Price set
+                if ($product->order_by == 1 && isset($validated['total_quantity'])) {
+                    $total_quantity = $validated['total_quantity'];
+
+                    $bulkqty = BulkQuantity::where('product_id', $product->id)
+                        ->where('min_qty', '<=', $total_quantity)
+                        ->where('max_qty', '>=', $total_quantity)
+                        ->first();
+
+                    $price = $bulkqty ? $bulkqty->price : $sizeData->SalePrice;
+
+
+                    if (
+                        $product->topsale == 1 &&
+                        Carbon::today()->between(
+                            Carbon::parse($setting->flash_sale_start_date),
+                            Carbon::parse($setting->flash_sale_end_date)
+                        )
+                    ) {
+                        $price -= (($price * $setting->flash_sale_percentage) / 100);
+                    }
+
+                    $buyDetail->price = round($price);
+                    $buyDetail->regular_price = $bulkqty ? $bulkqty->price : $sizeData->SalePrice;
+
+                } else {
+
+                    if (
+                        $product->topsale == 1 &&
+                        $today->between(
+                            Carbon::parse($setting->flash_sale_start_date),
+                            Carbon::parse($setting->flash_sale_end_date)
+                        )
+                    ) {
+
+                        $salePrice = $sizeData->RegularPrice;
+                        $discountPercentage = $setting->flash_sale_percentage;
+
+                        $discountAmount = (($salePrice * $discountPercentage) / 100);
+                        $finalPrice = $salePrice - $discountAmount;
+
+                        $buyDetail->price = round($finalPrice);
+                        $buyDetail->regular_price = $sizeData->RegularPrice;
+
+                    } else {
+                        $buyDetail->price = $sizeData->SalePrice;
+                        $buyDetail->regular_price = $sizeData->RegularPrice;
+                    }
+
+                }
+
+                $buyDetail->save();
+
                 $savedDetails[] = $buyDetail;
-
-
-
             }
 
             DB::commit();
@@ -241,6 +238,7 @@ class BuyController extends Controller
                     $discount['final_price'] += $detail->quantity * $detail->price;
 
                     $sizeData = Productsize::where('product_id', $detail->product_id)
+                        ->where('color_id', $detail->color_id)
                         ->where('size', $detail->size)
                         ->first();
 
