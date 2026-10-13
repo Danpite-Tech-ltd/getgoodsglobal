@@ -84,6 +84,17 @@ class BuyController extends Controller
 
             foreach ($validated['buy_details'] as $detail) {
 
+                // Validate size
+                $sizeData = Productsize::where('product_id', $product->id)
+                    ->where('size', $detail['size'])
+                    ->first();
+                if (!$sizeData) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Invalid size: ' . $detail['size']
+                    ], 400);
+                }
+
                 // Validate color
                 $productColor = Productcolor::where('product_id', $product->id)
                     ->where('color_id', $detail['color_id'])
@@ -95,17 +106,21 @@ class BuyController extends Controller
                     ], 400);
                 }
 
-                // Validate size (checking product, color and size)
-                $sizeData = Productsize::where('product_id', $product->id)
+                // Color-wise size data for price
+                $colorSizeData = Productsize::where('product_id', $product->id)
                     ->where('color_id', $detail['color_id'])
                     ->where('size', $detail['size'])
                     ->first();
-                if (!$sizeData) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'Invalid size: ' . $detail['size']
-                    ], 400);
+
+                if (!$colorSizeData && $sizeData) {
+                    $colorSizeData = Productsize::where('product_id', $product->id)
+                        ->where('color_id', $detail['color_id'])
+                        ->where('size_id', $sizeData->size_id)
+                        ->first();
                 }
+
+                $priceSize = $colorSizeData ?: $sizeData;
+
                 //  same size + color already exists
                 $buyDetailQuery = BuyDetail::where('user_id', $customer->id)
                     ->where('buy_id', $buy->id)
@@ -136,7 +151,7 @@ class BuyController extends Controller
                         ->where('max_qty', '>=', $total_quantity)
                         ->first();
 
-                    $price = $bulkqty ? $bulkqty->price : $sizeData->SalePrice;
+                    $price = $bulkqty ? $bulkqty->price : $priceSize->SalePrice;
 
 
                     if (
@@ -150,7 +165,7 @@ class BuyController extends Controller
                     }
 
                     $buyDetail->price = round($price);
-                    $buyDetail->regular_price = $bulkqty ? $bulkqty->price : $sizeData->SalePrice;
+                    $buyDetail->regular_price = $bulkqty ? $bulkqty->price : $priceSize->SalePrice;
 
                 } else {
 
@@ -162,18 +177,18 @@ class BuyController extends Controller
                         )
                     ) {
 
-                        $salePrice = $sizeData->RegularPrice;
+                        $salePrice = $priceSize->RegularPrice;
                         $discountPercentage = $setting->flash_sale_percentage;
 
                         $discountAmount = (($salePrice * $discountPercentage) / 100);
                         $finalPrice = $salePrice - $discountAmount;
 
                         $buyDetail->price = round($finalPrice);
-                        $buyDetail->regular_price = $sizeData->RegularPrice;
+                        $buyDetail->regular_price = $priceSize->RegularPrice;
 
                     } else {
-                        $buyDetail->price = $sizeData->SalePrice;
-                        $buyDetail->regular_price = $sizeData->RegularPrice;
+                        $buyDetail->price = $priceSize->SalePrice;
+                        $buyDetail->regular_price = $priceSize->RegularPrice;
                     }
 
                 }
