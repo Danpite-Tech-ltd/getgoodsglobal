@@ -1067,13 +1067,20 @@ class OrderController extends Controller
         $sizeRecord = $stockQuery->first();
         $dbStock = $sizeRecord ? (int)$sizeRecord->stock : 0;
 
-        // In edit mode, DB stock is already reduced by the existing order qty.
-        // Effective total available = dbStock (remaining) + currentQty (already in this order).
-        // We can increment as long as there is at least 1 remaining in DB (dbStock > 0).
-        $effectiveMax = $dbStock + $currentQty;
+        // In edit mode: original_qty was already deducted from dbStock.
+        // So the total items that this order can use without exceeding actual inventory is:
+        // effectiveMax = (remaining stock currently in DB) + (original order quantity from DB)
+        $originalQty = (int)($cartItem->options->original_qty ?? 0);
+        $effectiveMax = $dbStock + $originalQty;
 
-        if ($dbStock <= 0 || $currentQty >= $effectiveMax) {
-            return response()->json(['status' => 'out_of_stock', 'message' => 'Stock not available', 'stock' => $dbStock]);
+        // If it's a new item (originalQty = 0), effectiveMax is just dbStock.
+        // We can increment as long as currentQty < effectiveMax.
+        if ($currentQty >= $effectiveMax) {
+            return response()->json([
+                'status' => 'out_of_stock',
+                'message' => 'Stock not available',
+                'stock' => max(0, $effectiveMax - $currentQty)
+            ]);
         }
 
         $qty = $currentQty + 1;
@@ -1182,6 +1189,7 @@ class OrderController extends Controller
                     'product_color_image' => $ordetails->product_color_image,
                     'product_size'        => $ordetails->product_size,
                     'color_id'            => $colorId,
+                    'original_qty'        => (int)$ordetails->qty,
                 ],
             ]);
         }
