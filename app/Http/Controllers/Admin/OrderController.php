@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Admin;
 use App\Models\Productsize;
 use Illuminate\Support\Facades\Http;
-use GuzzleHttp\Client;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Customer;
+use App\Models\Color;
 use App\Models\District;
 use App\Models\OrderStatus;
 use App\Models\Order;
@@ -256,16 +256,20 @@ class OrderController extends Controller
         // Restore stock before deleting
         $details = OrderDetails::where('order_id', $request->id)->get();
         foreach ($details as $detail) {
+            $q = Productsize::where('product_id', $detail->product_id);
+
             if ($detail->product_size) {
-                $q = Productsize::where('product_id', $detail->product_id)
-                    ->where('size', $detail->product_size);
-                $ps = Productsize::where('product_id', $detail->product_id)
-                    ->where('size', $detail->product_size)->first();
-                if ($ps && $ps->color_id) {
-                    $q->where('color_id', $ps->color_id);
-                }
-                $q->increment('stock', $detail->qty);
+                $q->where('size', $detail->product_size);
             }
+
+            if ($detail->product_color) {
+                $color = Color::where('colorName', $detail->product_color)->first();
+                if ($color) {
+                    $q->where('color_id', $color->id);
+                }
+            }
+
+            $q->increment('stock', $detail->qty);
         }
 
         Order::where('id', $request->id)->delete();
@@ -393,16 +397,20 @@ class OrderController extends Controller
             // Restore stock before deleting
             $details = OrderDetails::where('order_id', $order_id)->get();
             foreach ($details as $detail) {
+                $q = Productsize::where('product_id', $detail->product_id);
+
                 if ($detail->product_size) {
-                    $q = Productsize::where('product_id', $detail->product_id)
-                        ->where('size', $detail->product_size);
-                    $ps = Productsize::where('product_id', $detail->product_id)
-                        ->where('size', $detail->product_size)->first();
-                    if ($ps && $ps->color_id) {
-                        $q->where('color_id', $ps->color_id);
-                    }
-                    $q->increment('stock', $detail->qty);
+                    $q->where('size', $detail->product_size);
                 }
+
+                if ($detail->product_color) {
+                    $color = Color::where('colorName', $detail->product_color)->first();
+                    if ($color) {
+                        $q->where('color_id', $color->id);
+                    }
+                }
+
+                $q->increment('stock', $detail->qty);
             }
 
             Order::where('id', $order_id)->delete();
