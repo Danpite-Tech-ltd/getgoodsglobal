@@ -23,6 +23,7 @@ use App\Models\SmsGateway;
 use Session;
 use Cart;
 use Toastr;
+use DB;
 use Mail;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -1049,6 +1050,13 @@ class OrderController extends Controller
         $sizeName   = $cartItem->options->product_size ?? null;
         $currentQty = $cartItem->qty;
 
+        if (!$colorId && !empty($cartItem->options->product_color)) {
+            $colRec = Color::where('colorName', $cartItem->options->product_color)->first();
+            if ($colRec) {
+                $colorId = $colRec->id;
+            }
+        }
+
         $stockQuery = \App\Models\Productsize::where('product_id', $productId);
         if ($sizeName) {
             $stockQuery->where('size', $sizeName);
@@ -1125,13 +1133,25 @@ class OrderController extends Controller
         foreach($orderdetails as $ordetails){
             // Resolve color_id from Productsize for proper stock tracking
             $colorId = null;
+            if ($ordetails->product_color) {
+                $cRec = Color::where('colorName', $ordetails->product_color)->first();
+                if ($cRec) {
+                    $colorId = $cRec->id;
+                }
+            }
+
             $regularPrice = $ordetails->regular_price;
             if ($ordetails->product_size) {
                 $psQuery = Productsize::where('product_id', $ordetails->product_id)
                     ->where('size', $ordetails->product_size);
+                if ($colorId) {
+                    $psQuery->where('color_id', $colorId);
+                }
                 $ps = $psQuery->first();
                 if ($ps) {
-                    $colorId = $ps->color_id;
+                    if (!$colorId) {
+                        $colorId = $ps->color_id;
+                    }
                     if (!$regularPrice && $ps->RegularPrice) {
                         $regularPrice = (float)$ps->RegularPrice;
                     }
@@ -1175,269 +1195,315 @@ class OrderController extends Controller
     }
 
     public function order_update(Request $request)
-{
-    $this->validate($request, [
-        'name'    => 'required',
-        'phone'   => 'required',
-        'address' => 'required',
-        'area'    => 'required',
-    ]);
+    {
+        $this->validate($request, [
+            'name'    => 'required',
+            'phone'   => 'required',
+            'address' => 'required',
+            'area'    => 'required',
+        ]);
 
-    if (Cart::instance('pos_shopping')->count() <= 0) {
-        Toastr::error('Your shopping cart is empty', 'Failed!');
-        return redirect()->back();
-    }
+        if (Cart::instance('pos_shopping')->count() <= 0) {
+            Toastr::error('Your shopping cart is empty', 'Failed!');
+            return redirect()->back();
+        }
 
-    $order = Order::where('id', $request->order_id)->first();
+        $order = Order::where('id', $request->order_id)->first();
+        if (!$order) {
+            Toastr::error('Order not found', 'Failed!');
+            return redirect()->back();
+        }
 
-    // ── STEP 1: Revert stock for OLD order details before applying new values ──
-    $oldDetails = OrderDetails::where('order_id', $order->id)->get();
-    foreach ($oldDetails as $old) {
-        if ($old->product_size) {
-            $q = Productsize::where('product_id', $old->product_id)
-                ->where('size', $old->product_size);
-            if ($old->product_color) {
-                // Try to match color_id via productsize
-                $ps = Productsize::where('product_id', $old->product_id)
-                    ->where('size', $old->product_size)
-                    ->first();
-                if ($ps && $ps->color_id) {
-                    $q->where('color_id', $ps->color_id);
+        $oldDetails = OrderDetails::where('order_id', $order->id)->get();
+        $cartItemsPost = $request->input('cart_items', []);
+
+        DB::beginTransaction();
+        try {
+            // ── STEP 1: Aggregate Old Quantities per Variant ──
+            $oldQuantities = [];
+            foreach ($oldDetails as $old) {
+                if ($old->product_size) {
+                    $cId = 0;
+                    if ($old->product_color) {
+                        $colorRec = Color::where('colorName', $old->product_color)->first();
+                        if ($colorRec) {
+                            $cId = (int)$colorRec->id;
+                        }
+                    }
+                    $key = $old->product_id . '_' . trim($old->product_size) . '_' . $cId;
+                    $oldQuantities[$key] = ($oldQuantities[$key] ?? 0) + (int)$old->qty;
                 }
             }
-            $q->increment('stock', $old->qty);
-        }
-    }
 
-    // ── STEP 2: Stock limit check on new cart items ──
-    $cartItemsPostCheck = $request->input('cart_items', []);
-    foreach (Cart::instance('pos_shopping')->content() as $cart) {
-        $postRowCheck = $cartItemsPostCheck[$cart->rowId] ?? [];
-        $sizeName = !empty($postRowCheck['size']) ? $postRowCheck['size'] : ($cart->options->product_size ?? null);
-        $colorId  = !empty($postRowCheck['color_id']) ? $postRowCheck['color_id'] : ($cart->options->color_id ?? null);
-        if ($sizeName) {
-            $sqQuery = Productsize::where('product_id', $cart->id)->where('size', $sizeName);
-            if ($colorId) {
-                $sqQuery->where('color_id', $colorId);
-            }
-            $sz = $sqQuery->first();
-            $available = $sz ? (int)$sz->stock : 0;
-            if ($cart->qty > $available) {
-                // Restore old stock (undo step 1) and abort
-                foreach ($oldDetails as $old) {
-                    if ($old->product_size) {
-                        $q2 = Productsize::where('product_id', $old->product_id)->where('size', $old->product_size);
-                        $ps2 = Productsize::where('product_id', $old->product_id)->where('size', $old->product_size)->first();
-                        if ($ps2 && $ps2->color_id) $q2->where('color_id', $ps2->color_id);
-                        $q2->decrement('stock', $old->qty);
+            // ── STEP 2: Aggregate New Cart Quantities per Variant & Resolve Details ──
+            $newQuantities = [];
+            $cartRowData = [];
+
+            foreach (Cart::instance('pos_shopping')->content() as $cart) {
+                $postRow = $cartItemsPost[$cart->rowId] ?? [];
+
+                $detailsId = $cart->options->details_id ?? null;
+                $existingDetail = null;
+                if ($detailsId) {
+                    $existingDetail = $oldDetails->firstWhere('id', $detailsId);
+                }
+
+                $postColorId   = $postRow['color_id']   ?? null;
+                $postColorName = $postRow['color_name']  ?? null;
+                $postColorImg  = $postRow['color_image'] ?? null;
+                $postSize      = $postRow['size']        ?? null;
+
+                $productColor = (!empty($postColorName))
+                    ? $postColorName
+                    : (!empty($cart->options->product_color)
+                        ? $cart->options->product_color
+                        : ($existingDetail->product_color ?? null));
+
+                $productColorImage = (!empty($postColorImg))
+                    ? $postColorImg
+                    : (!empty($cart->options->product_color_image)
+                        ? $cart->options->product_color_image
+                        : ($existingDetail->product_color_image ?? null));
+
+                $productSize = (!empty($postSize))
+                    ? $postSize
+                    : (!empty($cart->options->product_size)
+                        ? $cart->options->product_size
+                        : ($existingDetail->product_size ?? null));
+
+                $resolvedColorId = (!empty($postColorId))
+                    ? (int)$postColorId
+                    : (!empty($cart->options->color_id) ? (int)$cart->options->color_id : null);
+
+                if (!empty($resolvedColorId) && empty($productColor)) {
+                    $colorObj = Color::find($resolvedColorId);
+                    if ($colorObj) {
+                        $productColor = $colorObj->colorName ?? $colorObj->color ?? null;
+                    }
+                } elseif (empty($resolvedColorId) && !empty($productColor)) {
+                    $colorObj = Color::where('colorName', $productColor)->first();
+                    if ($colorObj) {
+                        $resolvedColorId = (int)$colorObj->id;
                     }
                 }
-                Toastr::error('"' . $cart->name . '" এর পর্যাপ্ত stock নেই। Available: ' . $available, 'Stock Error!');
-                return redirect()->back();
-            }
-        }
-    }
 
-    // ── STEP 3: Calculate amounts ──
-    $subtotal = Cart::instance('pos_shopping')->subtotal();
-    $subtotal = str_replace([',', '.00'], '', $subtotal);
-    $shippingfee  = ShippingCharge::find($request->area);
+                if (empty($productColorImage) && !empty($resolvedColorId)) {
+                    $pColor = \App\Models\Productcolor::where('product_id', $cart->id)->where('color_id', $resolvedColorId)->first();
+                    if ($pColor && $pColor->Image) {
+                        $productColorImage = $pColor->Image;
+                    }
+                }
 
-    // ── STEP 4: Handle customer ──
-    $exits_customer = Customer::where('phone', $request->phone)->select('phone', 'id')->first();
-    if ($exits_customer) {
-        $customer_id = $exits_customer->id;
-    } else {
-        $password           = rand(111111, 999999);
-        $store              = new Customer();
-        $store->name        = $request->name;
-        $store->slug        = $request->name;
-        $store->phone       = $request->phone;
-        $store->password    = bcrypt($password);
-        $store->verify      = 1;
-        $store->status      = 'active';
-        $store->save();
-        $customer_id = $store->id;
-    }
+                $cId = $resolvedColorId ? (int)$resolvedColorId : 0;
+                $key = $cart->id . '_' . trim($productSize ?? '') . '_' . $cId;
 
-    // ── STEP 5: Update Order ──
-    $newAmount               = (float)$subtotal + $shippingfee->amount;
-    $alreadyPaid             = (float)($order->paid_partial_payment_amount ?? 0);
-    $order->amount           = $newAmount;
-    $order->discount         = 0;
-    $order->shipping_charge  = $shippingfee->amount;
-    $order->customer_id      = $customer_id;
-    $order->note             = $request->note;
-    $order->admin_note       = $request->admin_note;
-    $order->refund_paid_amount = $request->refund_paid_amount;
-    $order->weight           = $request->weight;
-    // Recalculate due amount properly
-    $order->payment_due_amount = max(0, $newAmount - $alreadyPaid);
-    $order->save();
+                $cartRowData[$cart->rowId] = [
+                    'cart'              => $cart,
+                    'details_id'        => $detailsId,
+                    'product_size'      => $productSize,
+                    'product_color'     => $productColor,
+                    'product_color_image' => $productColorImage,
+                    'color_id'          => $resolvedColorId,
+                    'variant_key'       => $key,
+                ];
 
-    // ── STEP 6: Update Shipping ──
-    $shipping              = Shipping::where('order_id', $request->order_id)->first();
-    $shipping->order_id    = $order->id;
-    $shipping->customer_id = $customer_id;
-    $shipping->name        = $request->name;
-    $shipping->phone       = $request->phone;
-    $shipping->address     = $request->address;
-    $shipping->area        = $shippingfee->name;
-    $shipping->save();
-
-    // ── STEP 7: Update Payment ──
-    $payment                 = Payment::where('order_id', $request->order_id)->first();
-    $payment->order_id       = $order->id;
-    $payment->customer_id    = $customer_id;
-    $payment->amount         = $order->amount;
-    $payment->save();
-
-    // ── STEP 8: Delete removed items ──
-    $cartRowIds = [];
-    foreach (Cart::instance('pos_shopping')->content() as $cart) {
-        if (!empty($cart->options->details_id)) {
-            $cartRowIds[] = $cart->options->details_id;
-        }
-    }
-    OrderDetails::where('order_id', $order->id)
-        ->whereNotIn('id', array_filter($cartRowIds))
-        ->delete();
-
-    // ── STEP 9: Upsert cart items + deduct NEW stock ──
-    $cartItemsPost = $request->input('cart_items', []);
-
-    foreach (Cart::instance('pos_shopping')->content() as $cart) {
-        $detailsId = $cart->options->details_id ?? null;
-        $order_details = null;
-        if ($detailsId) {
-            $order_details = OrderDetails::where('id', $detailsId)->where('order_id', $order->id)->first();
-        }
-
-        if (!$order_details) {
-            $order_details             = new OrderDetails();
-            $order_details->order_id   = $order->id;
-            $order_details->product_id = $cart->id;
-        }
-
-        // Get POST form data for this cart row (submitted from selects in cart table)
-        $postRow = $cartItemsPost[$cart->rowId] ?? [];
-
-        // Resolve color/size from POST first (most up-to-date), then cart session, then existing order_details
-        $postColorId   = $postRow['color_id']   ?? null;
-        $postColorName = $postRow['color_name']  ?? null;
-        $postColorImg  = $postRow['color_image'] ?? null;
-        $postSize      = $postRow['size']        ?? null;
-
-        // color_name: POST hidden input -> cart session -> existing order_details
-        $productColor = (!empty($postColorName))
-            ? $postColorName
-            : (!empty($cart->options->product_color)
-                ? $cart->options->product_color
-                : ($order_details->product_color ?? null));
-
-        // color_image: POST hidden input -> cart session -> existing order_details
-        $productColorImage = (!empty($postColorImg))
-            ? $postColorImg
-            : (!empty($cart->options->product_color_image)
-                ? $cart->options->product_color_image
-                : ($order_details->product_color_image ?? null));
-
-        // size: POST select -> cart session -> existing order_details
-        $productSize = (!empty($postSize))
-            ? $postSize
-            : (!empty($cart->options->product_size)
-                ? $cart->options->product_size
-                : ($order_details->product_size ?? null));
-
-        // color_id: POST select -> cart session
-        $resolvedColorId = (!empty($postColorId))
-            ? $postColorId
-            : ($cart->options->color_id ?? null);
-
-        // If we have color_id from POST but no color_name, resolve it from DB
-        if (!empty($resolvedColorId) && empty($productColor)) {
-            $colorObj = \App\Models\Color::find($resolvedColorId);
-            if ($colorObj) {
-                $productColor = $colorObj->colorName ?? $colorObj->color ?? null;
-            }
-        }
-
-        // If color_image is still empty but color_id is present, try Productcolor
-        if (empty($productColorImage) && !empty($resolvedColorId)) {
-            $pColor = \App\Models\Productcolor::where('product_id', $cart->id)->where('color_id', $resolvedColorId)->first();
-            if ($pColor && $pColor->Image) {
-                $productColorImage = $pColor->Image;
-            }
-        }
-
-        // If color_image is still empty but product_color is present, try finding Image from Productcolor
-        if (empty($productColorImage) && !empty($productColor)) {
-            $colorRecord = \App\Models\Color::where('colorName', $productColor)->first();
-            if ($colorRecord) {
-                $pColor = \App\Models\Productcolor::where('product_id', $cart->id)->where('color_id', $colorRecord->id)->first();
-                if ($pColor && $pColor->Image) {
-                    $productColorImage = $pColor->Image;
+                if (!empty($productSize)) {
+                    $newQuantities[$key] = ($newQuantities[$key] ?? 0) + (int)$cart->qty;
                 }
             }
-        }
 
-        // Determine regular_price: cart options -> existing order_details -> Productsize -> Product
-        $regularPrice = $cart->options->regular_price ?? null;
-        if (!$regularPrice && !empty($order_details->regular_price)) {
-            $regularPrice = $order_details->regular_price;
-        }
-        if (!$regularPrice) {
-            $sizeName = $productSize;
-            if ($sizeName) {
-                $psQuery = Productsize::where('product_id', $cart->id)->where('size', $sizeName);
-                if (!empty($resolvedColorId)) {
-                    $psQuery->where('color_id', $resolvedColorId);
-                }
-                $ps = $psQuery->first();
-                if ($ps && $ps->RegularPrice) {
-                    $regularPrice = (float)$ps->RegularPrice;
+            // ── STEP 3: Stock Validation against Net Demand ──
+            $allKeys = array_unique(array_merge(array_keys($oldQuantities), array_keys($newQuantities)));
+
+            foreach ($allKeys as $key) {
+                $oldQty = $oldQuantities[$key] ?? 0;
+                $newQty = $newQuantities[$key] ?? 0;
+                $netDemand = $newQty - $oldQty;
+
+                if ($netDemand > 0) {
+                    [$prodId, $sizeVal, $colVal] = explode('_', $key);
+                    $szQuery = Productsize::where('product_id', $prodId)->where('size', $sizeVal);
+                    if (!empty($colVal)) {
+                        $szQuery->where('color_id', $colVal);
+                    }
+                    $szRecord = $szQuery->first();
+                    $currentDbStock = $szRecord ? (int)$szRecord->stock : 0;
+
+                    if ($netDemand > $currentDbStock) {
+                        DB::rollBack();
+                        $prodName = Product::where('id', $prodId)->value('name') ?? 'Product';
+                        $maxPossible = $oldQty + $currentDbStock;
+                        Toastr::error("\"{$prodName}\" (Size: {$sizeVal}) এর পর্যাপ্ত স্টক নেই। অতিরিক্ত প্রয়োজন: {$netDemand}, বর্তমানে ফাঁকা স্টক: {$currentDbStock} (সর্বোচ্চ নিতে পারবেন: {$maxPossible} টি)", 'Stock Limit Exceeded!');
+                        return redirect()->back();
+                    }
                 }
             }
-        }
-        if (!$regularPrice) {
-            $oldPrice = Product::where('id', $cart->id)->value('old_price');
-            $regularPrice = $oldPrice ? (float)$oldPrice : (float)$cart->price;
-        }
 
-        $order_details->product_name        = $cart->name;
-        $order_details->purchase_price      = $cart->options->purchase_price ?? ($order_details->purchase_price ?? 0);
-        $order_details->product_discount    = 0;
-        $order_details->sale_price          = $cart->price;
-        $order_details->regular_price       = (float)$regularPrice;
-        $order_details->qty                 = $cart->qty;
-        $order_details->product_color       = $productColor;
-        $order_details->product_color_image = $productColorImage;
-        $order_details->product_size        = $productSize;
-        $order_details->save();
-
-        // Deduct stock for the new quantities
-        $sizeName = $productSize;
-        $colorId  = $resolvedColorId;
-        if ($sizeName) {
-            $deductQuery = Productsize::where('product_id', $cart->id)->where('size', $sizeName);
-            if ($colorId) {
-                $deductQuery->where('color_id', $colorId);
+            // ── STEP 4: Apply Stock Changes (Revert Old Stock + Deduct New Stock) ──
+            foreach ($oldDetails as $old) {
+                if ($old->product_size) {
+                    $q = Productsize::where('product_id', $old->product_id)->where('size', $old->product_size);
+                    if ($old->product_color) {
+                        $color = Color::where('colorName', $old->product_color)->first();
+                        if ($color) {
+                            $q->where('color_id', $color->id);
+                        }
+                    }
+                    $q->increment('stock', $old->qty);
+                }
             }
-            $deductQuery->decrement('stock', $cart->qty);
+
+            // ── STEP 5: Calculate amounts & Shipping ──
+            $subtotal = Cart::instance('pos_shopping')->subtotal();
+            $subtotal = str_replace([',', '.00'], '', $subtotal);
+            $shippingfee  = ShippingCharge::find($request->area);
+
+            // ── STEP 6: Handle customer ──
+            $exits_customer = Customer::where('phone', $request->phone)->select('phone', 'id')->first();
+            if ($exits_customer) {
+                $customer_id = $exits_customer->id;
+            } else {
+                $password           = rand(111111, 999999);
+                $store              = new Customer();
+                $store->name        = $request->name;
+                $store->slug        = $request->name;
+                $store->phone       = $request->phone;
+                $store->password    = bcrypt($password);
+                $store->verify      = 1;
+                $store->status      = 'active';
+                $store->save();
+                $customer_id = $store->id;
+            }
+
+            // ── STEP 7: Update Order ──
+            $newAmount                 = (float)$subtotal + ($shippingfee ? $shippingfee->amount : 0);
+            $alreadyPaid               = (float)($order->paid_partial_payment_amount ?? 0);
+            $order->amount             = $newAmount;
+            $order->discount           = 0;
+            $order->shipping_charge    = $shippingfee ? $shippingfee->amount : 0;
+            $order->customer_id        = $customer_id;
+            $order->note               = $request->note;
+            $order->admin_note         = $request->admin_note;
+            $order->refund_paid_amount = $request->refund_paid_amount;
+            $order->weight             = $request->weight;
+            $order->payment_due_amount = max(0, $newAmount - $alreadyPaid);
+            $order->save();
+
+            // ── STEP 8: Update Shipping ──
+            $shipping              = Shipping::where('order_id', $request->order_id)->first();
+            if ($shipping) {
+                $shipping->order_id    = $order->id;
+                $shipping->customer_id = $customer_id;
+                $shipping->name        = $request->name;
+                $shipping->phone       = $request->phone;
+                $shipping->address     = $request->address;
+                $shipping->area        = $shippingfee ? $shippingfee->name : '';
+                $shipping->save();
+            }
+
+            // ── STEP 9: Update Payment ──
+            $payment                 = Payment::where('order_id', $request->order_id)->first();
+            if ($payment) {
+                $payment->order_id       = $order->id;
+                $payment->customer_id    = $customer_id;
+                $payment->amount         = $order->amount;
+                $payment->save();
+            }
+
+            // ── STEP 10: Delete removed items from OrderDetails ──
+            $cartDetailsIds = [];
+            foreach ($cartRowData as $rowMeta) {
+                if (!empty($rowMeta['details_id'])) {
+                    $cartDetailsIds[] = $rowMeta['details_id'];
+                }
+            }
+            OrderDetails::where('order_id', $order->id)
+                ->whereNotIn('id', array_filter($cartDetailsIds))
+                ->delete();
+
+            // ── STEP 11: Upsert cart items & Deduct New Stock ──
+            foreach ($cartRowData as $rowMeta) {
+                $cart = $rowMeta['cart'];
+                $detailsId = $rowMeta['details_id'];
+
+                $order_details = null;
+                if ($detailsId) {
+                    $order_details = OrderDetails::where('id', $detailsId)->where('order_id', $order->id)->first();
+                }
+
+                if (!$order_details) {
+                    $order_details             = new OrderDetails();
+                    $order_details->order_id   = $order->id;
+                    $order_details->product_id = $cart->id;
+                }
+
+                $productColor      = $rowMeta['product_color'];
+                $productColorImage = $rowMeta['product_color_image'];
+                $productSize       = $rowMeta['product_size'];
+                $resolvedColorId   = $rowMeta['color_id'];
+
+                // Determine regular_price
+                $regularPrice = $cart->options->regular_price ?? null;
+                if (!$regularPrice && !empty($order_details->regular_price)) {
+                    $regularPrice = $order_details->regular_price;
+                }
+                if (!$regularPrice && $productSize) {
+                    $psQuery = Productsize::where('product_id', $cart->id)->where('size', $productSize);
+                    if (!empty($resolvedColorId)) {
+                        $psQuery->where('color_id', $resolvedColorId);
+                    }
+                    $ps = $psQuery->first();
+                    if ($ps && $ps->RegularPrice) {
+                        $regularPrice = (float)$ps->RegularPrice;
+                    }
+                }
+                if (!$regularPrice) {
+                    $oldPrice = Product::where('id', $cart->id)->value('old_price');
+                    $regularPrice = $oldPrice ? (float)$oldPrice : (float)$cart->price;
+                }
+
+                $order_details->product_name        = $cart->name;
+                $order_details->purchase_price      = $cart->options->purchase_price ?? ($order_details->purchase_price ?? 0);
+                $order_details->product_discount    = 0;
+                $order_details->sale_price          = $cart->price;
+                $order_details->regular_price       = (float)$regularPrice;
+                $order_details->qty                 = $cart->qty;
+                $order_details->product_color       = $productColor;
+                $order_details->product_color_image = $productColorImage;
+                $order_details->product_size        = $productSize;
+                $order_details->save();
+
+                // Deduct stock for new items
+                if ($productSize) {
+                    $deductQuery = Productsize::where('product_id', $cart->id)->where('size', $productSize);
+                    if ($resolvedColorId) {
+                        $deductQuery->where('color_id', $resolvedColorId);
+                    }
+                    $deductQuery->decrement('stock', $cart->qty);
+                }
+            }
+
+            DB::commit();
+
+            // ── STEP 12: Clear Cart & Session ──
+            Cart::instance('pos_shopping')->destroy();
+            Session::forget('pos_shipping');
+            Session::forget('pos_discount');
+            Session::forget('product_discount');
+
+            $orderStatusObj = OrderStatus::find($order->order_status);
+            $order_slug = $orderStatusObj ? $orderStatusObj->slug : 'all';
+
+            Toastr::success('Thanks, Order updated successfully', 'Success!');
+            return redirect('admin/order/' . $order_slug);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Order Update Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+            Toastr::error('Order update failed: ' . $e->getMessage(), 'Error!');
+            return redirect()->back();
         }
     }
-
-    // ── STEP 10: Clear Cart & Session ──
-    Cart::instance('pos_shopping')->destroy();
-    Session::forget('pos_shipping');
-    Session::forget('pos_discount');
-    Session::forget('product_discount');
-
-    $order_slug = OrderStatus::find($order->order_status)->slug;
-
-    Toastr::success('Thanks, Order updated successfully', 'Success!');
-    return redirect('admin/order/' . $order_slug);
-}
 
 
     public function maplist()
