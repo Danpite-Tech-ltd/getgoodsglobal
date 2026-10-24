@@ -31,8 +31,9 @@ use Illuminate\Support\Facades\Http;
 class OrderController extends Controller
 {
 
-    public function order_print(Request $request, $order_id){
-        $orders = Order::where('invoice_id', $order_id)->with('orderdetails','payment','shipping','customer')->get();
+    public function order_print(Request $request, $order_id)
+    {
+        $orders = Order::where('invoice_id', $order_id)->with('orderdetails', 'payment', 'shipping', 'customer')->get();
         $view = view('backEnd.order.print', ['orders' => $orders])->render();
         return response()->json(['status' => 'success', 'view' => $view]);
     }
@@ -49,20 +50,20 @@ class OrderController extends Controller
                     ->map(function ($items) {
                         $slug = Product::find($items->first()->product_id)->slug;
                         return [
-                            'product_id'   => $items->first()->product_id,
+                            'product_id' => $items->first()->product_id,
                             'product_name' => $items->first()->product_name,
                             'product_slug' => $slug,
                             // 'sale_price'   => $items->first()->sale_price,
-                            'variants'     => $items->map(function ($item) {
+                            'variants' => $items->map(function ($item) {
                                 // $regular_price = Productsize::where('product_id', $item->product_id)->where('size', $item->product_size)->first()->RegularPrice;
                                 return [
-                                    'color'       => $item->product_color,
+                                    'color' => $item->product_color,
                                     'color_image' => $item->product_color_image,
-                                    'sale_price'   => $item->sale_price,
+                                    'sale_price' => $item->sale_price,
                                     'regular_price' => $item->regular_price,
                                     'product_price' => $item->regular_price * $item->qty,
-                                    'size'        => $item->product_size,
-                                    'qty'         => $item->qty,
+                                    'size' => $item->product_size,
+                                    'qty' => $item->qty,
                                 ];
                             })->values()
                         ];
@@ -77,9 +78,9 @@ class OrderController extends Controller
 
 
         return response()->json([
-            'status'  => 'success',
+            'status' => 'success',
             'message' => 'Order Track',
-            'data'    => $orders
+            'data' => $orders
         ]);
     }
 
@@ -108,11 +109,11 @@ class OrderController extends Controller
             $advanced = GeneralSetting::first()->payment_percentage;
             $payment_method_id = $request->payment_method_id;
 
-            $order = Order::where('invoice_id',$invoice_id)->first();
+            $order = Order::where('invoice_id', $invoice_id)->first();
             $cod = Bank::where('id', $payment_method_id)->first()->cod;
             $cod_charge = round(($order->amount * $cod) / 100);
 
-            if($payment_method_id == 5){
+            if ($payment_method_id == 5) {
                 $total_amount = $order->amount + $cod_charge;
 
                 // advance amount
@@ -125,14 +126,14 @@ class OrderController extends Controller
                 $order->cod_charge = $cod_charge;
                 $order->advanced = $advanced;
                 $order->amount = $total_amount;
-            }else{
+            } else {
                 $order->cod_percentage = $cod;
                 $order->cod_charge = $cod_charge;
 
                 $order->paid_partial_payment_amount = $order->amount + $cod_charge;
-                $order->payment_due_amount =  0;
+                $order->payment_due_amount = 0;
 
-                $order->amount =  $order->amount + $cod_charge;
+                $order->amount = $order->amount + $cod_charge;
             }
 
 
@@ -145,25 +146,25 @@ class OrderController extends Controller
                     unlink($order->pay_slip_image);
                 }
 
-                $imageName          = microtime('.') . '.' . $image->getClientOriginalExtension();
-                $imagePath          = 'public/uploads/order_slip/';
+                $imageName = microtime('.') . '.' . $image->getClientOriginalExtension();
+                $imagePath = 'public/uploads/order_slip/';
                 $image->move($imagePath, $imageName);
 
-                $order->pay_slip_image   = $imagePath . $imageName;
+                $order->pay_slip_image = $imagePath . $imageName;
             }
 
             $order->save();
 
             // Update Payment
-            $payment                 = Payment::where('order_id', $order->id)->first();
-            $payment->order_id       = $order->id;
-            $payment->customer_id    = $order->customer_id;
+            $payment = Payment::where('order_id', $order->id)->first();
+            $payment->order_id = $order->id;
+            $payment->customer_id = $order->customer_id;
             $payment->payment_method = $request->payment_method;
 
-            if($payment_method_id == 5){
+            if ($payment_method_id == 5) {
                 $cod = Bank::where('id', 5)->first()->cod;
                 $payment->amount = round(($order->amount * $cod) / 100);
-            }else{
+            } else {
                 $payment->amount = round(($order->amount * $advanced) / 100);
             }
 
@@ -173,30 +174,30 @@ class OrderController extends Controller
             // if (config('mail.default') !== 'sendmail') {
             //         Mail::to($user->email)->send(new \App\Mail\OrderPlace($order->id ));
             // }
-                $sms_gateway = SmsGateway::where('status',1)->first();
-                $generalsetting = GeneralSetting::where('status',1)->first();
+            $sms_gateway = SmsGateway::where('status', 1)->first();
+            $generalsetting = GeneralSetting::where('status', 1)->first();
 
-                // $url = $sms_gateway->url ?? '';
-                // $api_key = $sms_gateway->api_key ?? '';
-                // $senderid = $sms_gateway->serderid ?? '';
-                // $number = $request->phone;
-                // $message = "Dear {$request->name},  your order #{$invoice_id} has been placed successfully. Thank You. \r\n{$generalsetting->name}\r\n" . env('APP_URL');
+            // $url = $sms_gateway->url ?? '';
+            // $api_key = $sms_gateway->api_key ?? '';
+            // $senderid = $sms_gateway->serderid ?? '';
+            // $number = $request->phone;
+            // $message = "Dear {$request->name},  your order #{$invoice_id} has been placed successfully. Thank You. \r\n{$generalsetting->name}\r\n" . env('APP_URL');
 
-                // $data = [
-                //     "api_key" => $api_key,
-                //     "senderid" => $senderid,
-                //     "number" => $number,
-                //     "message" => $message
-                // ];
-                // $ch = curl_init();
-                // curl_setopt($ch, CURLOPT_URL, $url);
-                // curl_setopt($ch, CURLOPT_POST, 1);
-                // curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-                // curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                // curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                // $response = curl_exec($ch);
-                // curl_close($ch);
-                // return $response;
+            // $data = [
+            //     "api_key" => $api_key,
+            //     "senderid" => $senderid,
+            //     "number" => $number,
+            //     "message" => $message
+            // ];
+            // $ch = curl_init();
+            // curl_setopt($ch, CURLOPT_URL, $url);
+            // curl_setopt($ch, CURLOPT_POST, 1);
+            // curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+            // curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            // curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            // $response = curl_exec($ch);
+            // curl_close($ch);
+            // return $response;
 
             DB::commit();
             return response()->json([
@@ -206,15 +207,15 @@ class OrderController extends Controller
                 'payment' => $payment,
             ]);
         } catch (ValidationException $e) {
-             DB::rollBack();
+            DB::rollBack();
             return response()->json([
                 'status' => 'validation_error',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-             DB::rollBack();
+            DB::rollBack();
             return response()->json([
-                'status'  => 'error',
+                'status' => 'error',
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -268,12 +269,12 @@ class OrderController extends Controller
             DB::beginTransaction();
             //  Validate
             $validated = $request->validate([
-                'name'            => 'required|string|max:255',
-                'phone'           => 'required|string|max:20',
-                'address'         => 'required|string',
-                'customer_id'     => 'required|integer',
-                'payment_method'  => 'required|string',
-                'cart_ids'   => 'required|array|min:1',
+                'name' => 'required|string|max:255',
+                'phone' => 'required|string|max:20',
+                'address' => 'required|string',
+                'customer_id' => 'required|integer',
+                'payment_method' => 'required|string',
+                'cart_ids' => 'required|array|min:1',
                 'cart_ids.*' => 'integer|exists:carts,id'
             ]);
 
@@ -285,7 +286,7 @@ class OrderController extends Controller
 
             if (!$user) {
                 return response()->json([
-                    'status'  => 'error',
+                    'status' => 'error',
                     'message' => 'Unauthenticated user.',
                 ], 401);
             }
@@ -301,7 +302,7 @@ class OrderController extends Controller
 
             if ($cartItems->isEmpty()) {
                 return response()->json([
-                    'status'  => 'empty',
+                    'status' => 'empty',
                     'message' => 'Cart is empty',
                 ], 400);
             }
@@ -359,21 +360,21 @@ class OrderController extends Controller
 
             //     CREATE ORDER
             $order = new Order();
-            $order->invoice_id       = 0;
-            $order->amount           = $totalAmount;
-            $order->discount         = 0;
-            $order->coupon_name      = $request->coupon_code;
-            $order->coupon_discount  = $coupon_discount;
-            $order->shipping_charge  = $shippingfee;
+            $order->invoice_id = 0;
+            $order->amount = $totalAmount;
+            $order->discount = 0;
+            $order->coupon_name = $request->coupon_code;
+            $order->coupon_discount = $coupon_discount;
+            $order->shipping_charge = $shippingfee;
             $order->paid_partial_payment_amount = $request->paid_partial_payment_amount ?? 0;
             $order->payment_due_amount = $totalAmount;
-            $order->customer_id     = $user_id;
-            $order->order_status     = 1;
-            $order->note             = $request->note;
-            if($request->flash_sale_discount_price){
+            $order->customer_id = $user_id;
+            $order->order_status = 1;
+            $order->note = $request->note;
+            if ($request->flash_sale_discount_price) {
                 $order->flash_sale_title = $setting->flash_sale_title;
-                $order->flash_sale_discount_amount  = $request->flash_sale_discount_price;
-                $order->flash_sale_discount_percentage  = $setting->flash_sale_percentage;
+                $order->flash_sale_discount_amount = $request->flash_sale_discount_price;
+                $order->flash_sale_discount_percentage = $setting->flash_sale_percentage;
             }
             $order->save();
 
@@ -382,22 +383,22 @@ class OrderController extends Controller
 
             //     SHIPPING INFO
             $shipping = new Shipping();
-            $shipping->order_id     = $order->id;
-            $shipping->customer_id  = $user_id;
-            $shipping->name         = $request->name;
-            $shipping->phone        = $request->phone;
-            $shipping->address      = $request->address;
-            $shipping->district     = $request->district;
-            $shipping->city         = $request->city;
-            $shipping->area         = $shipping_area->name;
+            $shipping->order_id = $order->id;
+            $shipping->customer_id = $user_id;
+            $shipping->name = $request->name;
+            $shipping->phone = $request->phone;
+            $shipping->address = $request->address;
+            $shipping->district = $request->district;
+            $shipping->city = $request->city;
+            $shipping->area = $shipping_area->name;
             $shipping->save();
 
             //     PAYMENT INFO
             $payment = new Payment();
-            $payment->order_id       = $order->id;
-            $payment->customer_id    = $user_id;
+            $payment->order_id = $order->id;
+            $payment->customer_id = $user_id;
             $payment->payment_method = $request->payment_method;
-            $payment->amount         = $order->amount;
+            $payment->amount = $order->amount;
             $payment->payment_status = 'pending';
             $payment->payment_id = 'GP' . uniqid();
             $payment->save();
@@ -407,26 +408,41 @@ class OrderController extends Controller
                 // dd($cart);
                 foreach ($cart->cartdetails as $detail) {
 
+                    $product = Product::find($cart->product_id);
+
+                    $productSize = Productsize::where('product_id', $cart->product_id)
+                        ->where('size', $detail->size)
+                        ->where('color_id', $detail->color_id)
+                        ->lockForUpdate()
+                        ->first();
+
+                    // STOCK CHECK
+                    if (!$productSize || $productSize->stock < $detail->quantity) {
+                        DB::rollBack();
+
+                        return response()->json([
+                            'status' => false,
+                            'message' => $product->name . ' (Size: ' . $detail->size . ', Color: ' . $detail->color . ') is out of stock or has insufficient quantity. Available stock: ' . ($productSize->stock ?? 0),
+                        ], 422);
+                    }
+
                     $orderDetails = new OrderDetails();
-                    $orderDetails->order_id       = $order->id;
-                    $orderDetails->product_id     = $cart->product_id;
-                    $orderDetails->product_name   = Product::find($cart->product_id)->name;
-                    $orderDetails->product_color  = $detail->color;
-                    $orderDetails->product_color_image  = $detail->color_image;
-                    $orderDetails->product_size   = $detail->size;
-                    $orderDetails->qty            = $detail->quantity;
-                    $orderDetails->sale_price     = $detail->price;
-                    $orderDetails->regular_price     = $detail->regular_price;
+                    $orderDetails->order_id = $order->id;
+                    $orderDetails->product_id = $cart->product_id;
+                    $orderDetails->product_name = $product->name;
+                    $orderDetails->product_color = $detail->color;
+                    $orderDetails->product_color_image = $detail->color_image;
+                    $orderDetails->product_size = $detail->size;
+                    $orderDetails->qty = $detail->quantity;
+                    $orderDetails->sale_price = $detail->price;
+                    $orderDetails->regular_price = $detail->regular_price;
                     $orderDetails->purchase_price = 0;
                     $orderDetails->save();
 
                     // STOCK UPDATE
                     // cart_details.color_id = colors.id (e.g. 99 = Red)
                     // productsizes.color_id = same colors.id → direct match, no lookup needed
-                    Productsize::where('product_id', $cart->product_id)
-                        ->where('size', $detail->size)
-                        ->where('color_id', $detail->color_id)
-                        ->decrement('stock', $detail->quantity);
+                   $productSize->decrement('stock', $detail->quantity);
 
                 }
             }
@@ -448,7 +464,7 @@ class OrderController extends Controller
             DB::commit();
 
             return response()->json([
-                'status'  => 'success',
+                'status' => 'success',
                 'message' => 'Order placed successfully',
                 'order_id' => $order->id,
                 'invoice_id' => $order->invoice_id,
@@ -456,15 +472,15 @@ class OrderController extends Controller
 
             ], 201);
         } catch (ValidationException $e) {
-             DB::rollBack();
+            DB::rollBack();
             return response()->json([
                 'status' => 'validation_error',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-             DB::rollBack();
+            DB::rollBack();
             return response()->json([
-                'status'  => 'error',
+                'status' => 'error',
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -478,11 +494,11 @@ class OrderController extends Controller
             DB::beginTransaction();
             //  Validate
             $validated = $request->validate([
-                'name'            => 'required|string|max:255',
-                'phone'           => 'required|string|max:20',
-                'address'         => 'required|string',
-                'customer_id'     => 'required|integer',
-                'payment_method'  => 'required|string',
+                'name' => 'required|string|max:255',
+                'phone' => 'required|string|max:20',
+                'address' => 'required|string',
+                'customer_id' => 'required|integer',
+                'payment_method' => 'required|string',
             ]);
 
             // Find Customer
@@ -493,7 +509,7 @@ class OrderController extends Controller
 
             if (!$user) {
                 return response()->json([
-                    'status'  => 'error',
+                    'status' => 'error',
                     'message' => 'Unauthenticated user.',
                 ], 401);
             }
@@ -506,7 +522,7 @@ class OrderController extends Controller
 
             if ($buyItems->isEmpty()) {
                 return response()->json([
-                    'status'  => 'empty',
+                    'status' => 'empty',
                     'message' => 'Buy is empty',
                 ], 400);
             }
@@ -566,21 +582,21 @@ class OrderController extends Controller
 
             //     CREATE ORDER
             $order = new Order();
-            $order->invoice_id       = 0;
-            $order->amount           = $totalAmount;
-            $order->discount         = 0;
-            $order->coupon_name      = $request->coupon_name;
-            $order->coupon_discount  = $coupon_discount;
-            $order->shipping_charge  = $shippingfee;
+            $order->invoice_id = 0;
+            $order->amount = $totalAmount;
+            $order->discount = 0;
+            $order->coupon_name = $request->coupon_name;
+            $order->coupon_discount = $coupon_discount;
+            $order->shipping_charge = $shippingfee;
             $order->paid_partial_payment_amount = $request->paid_partial_payment_amount ?? 0;
             $order->payment_due_amount = $totalAmount;
-            $order->customer_id     = $user_id;
-            $order->order_status     = 1;
-            $order->note             = $request->note;
-            if($request->flash_sale_discount_price){
+            $order->customer_id = $user_id;
+            $order->order_status = 1;
+            $order->note = $request->note;
+            if ($request->flash_sale_discount_price) {
                 $order->flash_sale_title = $setting->flash_sale_title;
-                $order->flash_sale_discount_amount  = $request->flash_sale_discount_price;
-                $order->flash_sale_discount_percentage  = $setting->flash_sale_percentage;
+                $order->flash_sale_discount_amount = $request->flash_sale_discount_price;
+                $order->flash_sale_discount_percentage = $setting->flash_sale_percentage;
             }
             $order->save();
 
@@ -592,22 +608,22 @@ class OrderController extends Controller
 
             //     SHIPPING INFO
             $shipping = new Shipping();
-            $shipping->order_id    = $order->id;
+            $shipping->order_id = $order->id;
             $shipping->customer_id = $user_id;
-            $shipping->name        = $request->name;
-            $shipping->phone       = $request->phone;
-            $shipping->address     = $request->address;
-            $shipping->district     = $request->district;
-            $shipping->city         = $request->city;
-            $shipping->area        = $shipping_area->name;
+            $shipping->name = $request->name;
+            $shipping->phone = $request->phone;
+            $shipping->address = $request->address;
+            $shipping->district = $request->district;
+            $shipping->city = $request->city;
+            $shipping->area = $shipping_area->name;
             $shipping->save();
 
             //     PAYMENT INFO
             $payment = new Payment();
-            $payment->order_id       = $order->id;
-            $payment->customer_id    = $user_id;
+            $payment->order_id = $order->id;
+            $payment->customer_id = $user_id;
             $payment->payment_method = $request->payment_method;
-            $payment->amount         = $order->amount;
+            $payment->amount = $order->amount;
             $payment->payment_status = 'pending';
             $payment->payment_id = 'GP' . uniqid();
             $payment->save();
@@ -617,25 +633,39 @@ class OrderController extends Controller
                 // dd($buy);
                 foreach ($buy->buydetails as $detail) {
 
+                    $product = Product::find($buy->product_id);
+                    $productSize = Productsize::where('product_id', $buy->product_id)
+                        ->where('size', $detail->size)
+                        ->where('color_id', $detail->color_id)
+                        ->lockForUpdate()
+                        ->first();
+
+                    // STOCK CHECK
+                    if (!$productSize || $productSize->stock < $detail->quantity) {
+                        DB::rollBack();
+
+                        return response()->json([
+                            'status' => false,
+                            'message' => $product->name . ' (Size: ' . $detail->size . ', Color: ' . $detail->color . ') is out of stock or has insufficient quantity. Available stock: ' . ($productSize->stock ?? 0),
+                        ], 422);
+                    }
+
                     $orderDetails = new OrderDetails();
-                    $orderDetails->order_id       = $order->id;
-                    $orderDetails->product_id     = $buy->product_id;
-                    $orderDetails->product_name   = Product::find($buy->product_id)->name;
-                    $orderDetails->product_color  = $detail->color;
-                    $orderDetails->product_color_image  = $detail->color_image;
-                    $orderDetails->product_size   = $detail->size;
-                    $orderDetails->qty            = $detail->quantity;
-                    $orderDetails->sale_price     = $detail->price;
-                    $orderDetails->regular_price     = $detail->regular_price;
+                    $orderDetails->order_id = $order->id;
+                    $orderDetails->product_id = $buy->product_id;
+                    $orderDetails->product_name = $product->name;
+                    $orderDetails->product_color = $detail->color;
+                    $orderDetails->product_color_image = $detail->color_image;
+                    $orderDetails->product_size = $detail->size;
+                    $orderDetails->qty = $detail->quantity;
+                    $orderDetails->sale_price = $detail->price;
+                    $orderDetails->regular_price = $detail->regular_price;
                     $orderDetails->purchase_price = 0;
                     $orderDetails->save();
 
                     // STOCK UPDATE
 
-                    Productsize::where('product_id', $buy->product_id)
-                        ->where('size', $detail->size)
-                        ->where('color_id', $detail->color_id)
-                        ->decrement('stock', $detail->quantity);
+                    $productSize->decrement('stock', $detail->quantity);
 
                 }
             }
@@ -649,7 +679,7 @@ class OrderController extends Controller
             DB::commit();
 
             return response()->json([
-                'status'  => 'success',
+                'status' => 'success',
                 'message' => 'Order placed successfully',
                 'order_id' => $order->id,
                 'invoice_id' => $order->invoice_id,
@@ -657,15 +687,15 @@ class OrderController extends Controller
 
             ], 201);
         } catch (ValidationException $e) {
-             DB::rollBack();
+            DB::rollBack();
             return response()->json([
                 'status' => 'validation_error',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-             DB::rollBack();
+            DB::rollBack();
             return response()->json([
-                'status'  => 'error',
+                'status' => 'error',
                 'message' => $e->getMessage()
             ], 500);
         }
