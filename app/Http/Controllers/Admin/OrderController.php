@@ -581,6 +581,12 @@ class OrderController extends Controller
             $productsizeQuery = Productsize::with('product.category', 'product.brand', 'color')
                 ->whereHas('product', function($q){
                     $q->where('status', 1);
+                })
+                ->whereExists(function($query){
+                    $query->selectRaw('1')
+                        ->from('productcolors')
+                        ->whereColumn('productcolors.product_id', 'productsizes.product_id')
+                        ->whereColumn('productcolors.color_id', 'productsizes.color_id');
                 });
 
             if ($request->keyword) {
