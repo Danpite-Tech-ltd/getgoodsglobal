@@ -520,8 +520,21 @@ class CartController extends Controller
             // calculate prices from cart items
             foreach ($cartItems as $cart) {
                 foreach ($cart->cartdetails as $detail) {
+
+                    $productSize = Productsize::where('product_id', $detail->product_id)
+                        ->where('color_id', $detail->color_id)
+                        ->where('size', $detail->size)
+                        ->first();
+                    if($productSize && $productSize->SalePrice != $detail->price){
+                        $detail->price = $productSize->SalePrice;
+                        $detail->regular_price = $productSize->RegularPrice;
+                        $detail->save();
+                    }
+
                     $discount['product_price'] += $detail->quantity * $detail->regular_price;
                     $discount['final_price'] += $detail->quantity * $detail->price;
+
+
                 }
             }
 
