@@ -584,16 +584,65 @@ public function cartRemove($id)
     }
 }
 
-public function cartDetailsUpdate(Request $request, $id){
-    $cartDetails = CartDetails::find($id);
-    $cartDetails->quantity = $request->quantity;
-    $cartDetails->save();
+    public function cartDetailsUpdate(Request $request, $id)
+    {
+        $request->validate([
+            'quantity' => 'required|integer|min:1',
+        ]);
 
-    return response()->json([
-                'status'  => 'success',
-                'message' => 'Update To Cart',
-            ], 201);
-}
+        $cartDetails = CartDetails::find($id);
+
+        if (!$cartDetails) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Cart item not found',
+            ], 404);
+        }
+
+        $cart = Cart::find($cartDetails->cart_id);
+        $productId = $cartDetails->product_id ?: ($cart ? $cart->product_id : null);
+        $product = Product::find($productId);
+
+        if (!$product) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Product not found',
+            ], 404);
+        }
+
+        $productSize = Productsize::where('product_id', $productId)
+            ->where('size', $cartDetails->size)
+            ->when($cartDetails->color_id, function ($query, $colorId) {
+                return $query->where('color_id', $colorId);
+            })
+            ->first();
+
+        if (!$productSize) {
+            $productSize = Productsize::where('product_id', $productId)
+                ->where('size', $cartDetails->size)
+                ->first();
+        }
+
+        // STOCK CHECK
+        if (!$productSize || $productSize->stock < $request->quantity) {
+            $color = $cartDetails->color ?: ($cart ? $cart->color : null);
+            $variantInfo = 'Size: ' . $cartDetails->size . ($color ? ', Color: ' . $color : '');
+
+            return response()->json([
+                'status'  => false,
+                'message' => $product->name . ' (' . $variantInfo . ') is out of stock or has insufficient quantity. Available stock: ' . ($productSize->stock ?? 0),
+            ], 422);
+        }
+
+        $cartDetails->quantity = $request->quantity;
+        $cartDetails->save();
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Update To Cart',
+            'data'    => $cartDetails,
+        ], 200);
+    }
 
 public function cartDetailsDelete($id)
 {
