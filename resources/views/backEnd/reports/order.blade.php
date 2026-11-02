@@ -208,8 +208,16 @@
                                         $total_qty = 0;
                                         $total_sale = 0;
                                         $single_sale = 0;
+                                        $seen_order_ids = [];
                                     @endphp
                                     @foreach ($orders as $key => $value)
+                                        @php
+                                            $order = App\Models\Order::where('id', $value->order_id)->first();
+                                            $isFirstOccurrence = !in_array($value->order_id, $seen_order_ids);
+                                            if ($isFirstOccurrence) {
+                                                $seen_order_ids[] = $value->order_id;
+                                            }
+                                        @endphp
 
                                         <tr>
                                             <td>{{ $value->order ? $value->order->invoice_id : (($orders->firstItem() ?? 1) + $key) }}</td>
@@ -229,25 +237,24 @@
                                                 <td>{{ $value->total_sale }}</td>
                                                 <td>{{ $value->total_amount }}</td>
                                             @else
+                                                @php
+                                                    $row_total = $value->qty * $value->sale_price;
+                                                    $discount  = $isFirstOccurrence ? ($order?->coupon_discount ?? 0) : 0;
+                                                    $delivery  = $isFirstOccurrence ? ($order?->shipping_charge ?? 0) : 0;
+                                                    $cod       = $isFirstOccurrence ? ($order?->cod_charge ?? 0) : 0;
+                                                    $grand     = $row_total + $delivery + $cod - $discount;
+                                                @endphp
                                                 <td>{{ $value?->product_name }}</td>
                                                 <td>{{ $product?->product_code ?? "" }}</td>
                                                 <td>{{ $product_size?->sku }}</td>
                                                 <td>{{ $value->qty }}</td>
                                                 <td>{{ $value->sale_price }}</td>
                                                 <!--<td>{{ $value->shipping ? $value->shipping->address : '' }}</td>-->
-                                                <td>{{ $total_amount = $value->qty * $value->sale_price }}</td>
-                                                @php
-                                                    $shipping_charge = App\Models\Order::where(
-                                                        'id',
-                                                        $value->order_id,
-                                                    )->first()?->shipping_charge ?? 0;
-                                                    $order = App\Models\Order::where('id', $value->order_id)->first();
-                                                @endphp
-                                                <td>{{ $order?->coupon_discount }}</td>
-                                                <td>{{ $order?->shipping_charge }}</td>
-                                                <td>{{ number_format($order?->cod_charge ?? 0, 0) }}</td>
-                                                <!--<td>{{ $total_amount + $shipping_charge - $order->discount }}</td>-->
-                                                <td>{{ $order?->amount }}</td>
+                                                <td>{{ $row_total }}</td>
+                                                <td>{{ $discount }}</td>
+                                                <td>{{ $delivery }}</td>
+                                                <td>{{ number_format($cod, 0) }}</td>
+                                                <td>{{ $grand }}</td>
                                                 <td>{{ $value->shipping ? $value->shipping->name : '' }}</td>
                                                 <td>{{ $value->shipping ? $value->shipping->phone : '' }}</td>
                                                 <!--<td>{{ $value->shipping ? $value->shipping->email : '' }}</td>-->
