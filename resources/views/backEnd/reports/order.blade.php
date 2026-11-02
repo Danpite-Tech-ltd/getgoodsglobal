@@ -218,7 +218,7 @@
                                             @php
                                                 $product = App\Models\Product::where('id', $value->product_id)->first();
                                                 $product_color = App\Models\Productcolor::where('color', $value->product_color)->where('product_id', $value->product_id)->first();
-                                                $product_size = App\Models\Productsize::where('size', $value->product_size)->where('product_id', $value->product_id)->where('color_id', $product_color->color_id)->first();
+                                                $product_size = App\Models\Productsize::where('size', $value->product_size)->where('product_id', $value->product_id)->when($product_color?->color_id, function ($q, $colorId) { return $q->where('color_id', $colorId); })->first(); if (!$product_size) { $product_size = App\Models\Productsize::where('size', $value->product_size)->where('product_id', $value->product_id)->first(); }
                                             @endphp
                                             @if(request()->filter == 'sale')
                                                 <td>{{ $product?->name }}</td>
@@ -240,14 +240,14 @@
                                                     $shipping_charge = App\Models\Order::where(
                                                         'id',
                                                         $value->order_id,
-                                                    )->first()->shipping_charge;
+                                                    )->first()?->shipping_charge ?? 0;
                                                     $order = App\Models\Order::where('id', $value->order_id)->first();
                                                 @endphp
-                                                <td>{{ $order->coupon_discount }}</td>
-                                                <td>{{ $order->shipping_charge }}</td>
-                                                <td>{{ number_format($order->cod_charge, 0) }}</td>
+                                                <td>{{ $order?->coupon_discount }}</td>
+                                                <td>{{ $order?->shipping_charge }}</td>
+                                                <td>{{ number_format($order?->cod_charge ?? 0, 0) }}</td>
                                                 <!--<td>{{ $total_amount + $shipping_charge - $order->discount }}</td>-->
-                                                <td>{{ $order->amount }}</td>
+                                                <td>{{ $order?->amount }}</td>
                                                 <td>{{ $value->shipping ? $value->shipping->name : '' }}</td>
                                                 <td>{{ $value->shipping ? $value->shipping->phone : '' }}</td>
                                                 <!--<td>{{ $value->shipping ? $value->shipping->email : '' }}</td>-->
