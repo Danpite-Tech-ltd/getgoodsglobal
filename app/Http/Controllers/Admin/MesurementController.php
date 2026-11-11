@@ -26,6 +26,7 @@ class MesurementController extends Controller
         $request->validate([
             'title'  => 'required|string|max:255',
             'value'  => 'required|string|max:255',
+            'description' => 'nullable|string|max:255',
             'status' => 'required|in:0,1',
             'custom' => 'nullable|in:0,1',
             'is_ml'  => 'nullable|in:0,1',
@@ -37,6 +38,7 @@ class MesurementController extends Controller
         $unit = MeasurementUnit::create([
             'title'  => $request->title,
             'value'  => $request->value,
+            'description' => $request->description,
             'status' => $request->status,
             'custom' => $custom,
             'is_ml'  => $is_ml,
@@ -75,6 +77,7 @@ class MesurementController extends Controller
         $request->validate([
             'title'  => 'required|string|max:255',
             'value'  => 'required|string|max:255',
+            'description' => 'nullable|string|max:255',
             'status' => 'required|in:0,1',
             'custom' => 'nullable|in:0,1',
             'is_ml'  => 'nullable|in:0,1',
@@ -87,6 +90,7 @@ class MesurementController extends Controller
         $unit->update([
             'title'  => $request->title,
             'value'  => $request->value,
+            'description' => $request->description,
             'status' => $request->status,
             'custom' => $custom,
             'is_ml'  => $is_ml,

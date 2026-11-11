@@ -37,7 +37,7 @@
                                 <th>Title</th>
                                 <th>Value To CM</th>
                                 <th>Custom</th>
-                                <th>Is ML</th>
+                                {{-- <th>Is ML</th> --}}
                                 <th>Status</th>
                                 <th>Action</th>
                             </tr>
@@ -56,7 +56,7 @@
                                             <span class="badge bg-soft-secondary text-secondary">false</span>
                                         @endif
                                     </td>
-                                    <td>
+                                    {{-- <td>
                                         @if ($value->custom == 1)
                                             @if ($value->is_ml == 1)
                                                 <span class="badge bg-soft-success text-success">true</span>
@@ -66,7 +66,7 @@
                                         @else
                                             <span class="text-muted">N/A</span>
                                         @endif
-                                    </td>
+                                    </td> --}}
                                     <td>
                                         @if ($value->status == 1)
                                             <span class="badge bg-soft-success text-success">Active</span>
@@ -129,6 +129,14 @@
                         <div class="invalid-feedback" id="value-error"></div>
                     </div>
 
+                    <!-- Description -->
+                    <div class="mb-3">
+                        <label for="unit_description" class="form-label">Description</label>
+                        <input type="text" class="form-control" id="unit_description" name="description"
+                            placeholder="Enter description">
+                        <div class="invalid-feedback" id="description-error"></div>
+                    </div>
+
                     <!-- Custom -->
                     <div class="mb-3">
                         <label for="unit_custom" class="form-label">Custom <span class="text-danger">*</span></label>
@@ -140,14 +148,14 @@
                     </div>
 
                     <!-- Is ML (shown when Custom is 1) -->
-                    <div class="mb-3" id="is_ml_wrapper" style="display: none;">
+                    {{-- <div class="mb-3" id="is_ml_wrapper" style="display: none;">
                         <label for="unit_is_ml" class="form-label">Is ML <span class="text-danger">*</span></label>
                         <select class="form-select" id="unit_is_ml" name="is_ml">
                             <option value="0">false</option>
                             <option value="1">true</option>
                         </select>
                         <div class="invalid-feedback" id="is_ml-error"></div>
-                    </div>
+                    </div> --}}
 
                     <!-- Status -->
                     <div class="mb-3">
@@ -196,8 +204,8 @@
 
         // ---- Helper: reset validation errors ----
         function resetErrors() {
-            $('#unit_title, #unit_value, #unit_status, #unit_custom, #unit_is_ml').removeClass('is-invalid');
-            $('#title-error, #value-error, #status-error, #custom-error, #is_ml-error').text('').hide();
+            $('#unit_title, #unit_value, #unit_description, #unit_status, #unit_custom, #unit_is_ml').removeClass('is-invalid');
+            $('#title-error, #value-error, #description-error, #status-error, #custom-error, #is_ml-error').text('').hide();
         }
 
         function toggleIsMl() {
@@ -243,6 +251,7 @@
                         $('#unit_method').val('PUT');
                         $('#unit_title').val(d.title);
                         $('#unit_value').val(d.value);
+                        $('#unit_description').val(d.description);
                         $('#unit_status').val(d.status);
                         $('#unit_custom').val(d.custom == '1' || d.custom == 1 ? '1' : '0');
                         $('#unit_is_ml').val(d.is_ml == '1' || d.is_ml == 1 ? '1' : '0');
@@ -290,6 +299,7 @@
                         var fieldMap = {
                             title:  'unit_title',
                             value:  'unit_value',
+                            description: 'unit_description',
                             status: 'unit_status',
                             custom: 'unit_custom',
                             is_ml:  'unit_is_ml'

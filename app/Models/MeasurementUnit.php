@@ -9,5 +9,5 @@ class MeasurementUnit extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['title', 'value', 'status', 'custom', 'is_ml'];
+    protected $fillable = ['title', 'value', 'description', 'status', 'custom', 'is_ml'];
 }
